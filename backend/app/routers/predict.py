@@ -4,8 +4,8 @@ Will be replaced with real YOLOv8m inference once ML model is trained.
 """
 import random
 from fastapi import APIRouter, Depends, UploadFile, File
-from backend.app.schemas import PredictResponse, PredictionBox
-from backend.app.auth import get_current_user
+from app.schemas import PredictResponse, PredictionBox
+from app.auth import get_current_user
 
 router = APIRouter(prefix="/api/predict", tags=["predict"])
 

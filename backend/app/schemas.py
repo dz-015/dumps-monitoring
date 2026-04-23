@@ -7,12 +7,23 @@ class UserCreate(BaseModel):
     email: str
     password: str
     full_name: str = ""
+    organization_name: str | None = None  # create a new org
+    join_code: str | None = None          # or join an existing one
 
 class UserOut(BaseModel):
     id: int
     email: str
     full_name: str
     is_active: bool
+    is_admin: bool = False
+    organization_id: int | None = None
+    class Config:
+        from_attributes = True
+
+class OrganizationOut(BaseModel):
+    id: int
+    name: str
+    join_code: str
     class Config:
         from_attributes = True
 

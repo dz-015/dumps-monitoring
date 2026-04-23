@@ -1,8 +1,15 @@
-"""Seed the DB with demo data for development."""
+"""Seed the DB with demo data for development.
+
+Run: `python -m app.seed` from `backend/` (after `alembic upgrade head`).
+Idempotent — re-running is a no-op if any User already exists.
+"""
 import datetime as dt
 import random
+import secrets
 from sqlalchemy.orm import Session
-from app.db.models import User, Site, Camera, Alert
+
+from app.db.database import SessionLocal
+from app.db.models import Alert, Camera, Organization, Site, User
 from app.auth import hash_password
 
 SITES_DATA = [
@@ -19,55 +26,62 @@ SITES_DATA = [
 STATUSES = ["clean", "clean", "clean", "clean", "overflow", "contamination", "clean", "overflow"]
 
 
-def seed_db(db: Session):
-    # Check if already seeded
+def seed_db(db: Session) -> None:
     if db.query(User).first():
         return
 
-    # Create demo user
-    user = User(
-        email="admin@nekobak.ru",
-        hashed_password=hash_password("admin123"),
-        full_name="Иван Иванович",
-    )
-    db.add(user)
+    demo_org = Organization(name="НЭКОБАК — демо", join_code=secrets.token_urlsafe(8))
+    db.add(demo_org)
     db.flush()
 
-    # Create sites
+    admin = User(
+        email="admin@nekobak.ru",
+        hashed_password=hash_password("admin123"),
+        full_name="Администратор",
+        is_admin=True,
+        organization_id=None,
+    )
+    demo_user = User(
+        email="demo@nekobak.ru",
+        hashed_password=hash_password("demo1234"),
+        full_name="Иван Иванович",
+        organization_id=demo_org.id,
+    )
+    db.add_all([admin, demo_user])
+    db.flush()
+
     for i, site_data in enumerate(SITES_DATA):
-        site = Site(**site_data, status=STATUSES[i])
+        site = Site(organization_id=demo_org.id, **site_data, status=STATUSES[i])
         db.add(site)
         db.flush()
 
-        # 1-3 cameras per site
-        num_cams = random.randint(1, 3)
-        for j in range(num_cams):
-            cam = Camera(
+        for j in range(random.randint(1, 3)):
+            db.add(Camera(
                 site_id=site.id,
                 name=f"Камера {j + 1}",
                 rtsp_url=f"rtsp://admin:pass@192.168.{i}.{j + 10}:554/stream",
                 is_active=True,
                 last_checked=dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=random.randint(5, 120)),
-            )
-            db.add(cam)
+            ))
 
-        # Some alerts
-        num_alerts = random.randint(0, 8)
-        for k in range(num_alerts):
+        for _ in range(random.randint(0, 8)):
             days_ago = random.randint(0, 30)
-            level = random.choice(["overflow", "contamination"])
             status = random.choice(["new", "accepted", "resolved"])
-            alert = Alert(
+            db.add(Alert(
                 site_id=site.id,
-                level=level,
+                level=random.choice(["overflow", "contamination"]),
                 status=status,
                 created_at=dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=days_ago, hours=random.randint(0, 23)),
                 resolved_at=(
-                    dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=days_ago - 1)
+                    dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=max(days_ago - 1, 0))
                     if status == "resolved" else None
                 ),
-            )
-            db.add(alert)
+            ))
 
     db.commit()
-    print("Database seeded with demo data.")
+    print(f"Seeded: org '{demo_org.name}' (join_code={demo_org.join_code}), admin + demo user, {len(SITES_DATA)} sites.")
+
+
+if __name__ == "__main__":
+    with SessionLocal() as session:
+        seed_db(session)

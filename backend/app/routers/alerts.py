@@ -1,14 +1,22 @@
 import datetime as dt
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 
-from backend.app.db.database import get_db
-from backend.app.db.models import Alert, Site
-from backend.app.schemas import AlertOut, AlertStatusUpdate
-from backend.app.auth import get_current_user
+from app.db.database import get_db
+from app.db.models import Alert, Site, User
+from app.schemas import AlertOut, AlertStatusUpdate
+from app.auth import get_current_user
 
 router = APIRouter(prefix="/api/alerts", tags=["alerts"])
+
+
+def _scoped(query, user: User):
+    """Non-admin users see only alerts on sites of their own organization."""
+    if user.is_admin:
+        return query
+    return query.join(Site, Alert.site_id == Site.id).filter(
+        Site.organization_id == user.organization_id
+    )
 
 
 @router.get("")
@@ -18,9 +26,9 @@ def list_alerts(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
-    _=Depends(get_current_user),
+    user: User = Depends(get_current_user),
 ):
-    q = db.query(Alert)
+    q = _scoped(db.query(Alert), user)
     if level:
         q = q.filter(Alert.level == level)
     if status:
@@ -43,9 +51,9 @@ def update_alert_status(
     alert_id: int,
     data: AlertStatusUpdate,
     db: Session = Depends(get_db),
-    _=Depends(get_current_user),
+    user: User = Depends(get_current_user),
 ):
-    alert = db.query(Alert).filter(Alert.id == alert_id).first()
+    alert = _scoped(db.query(Alert).filter(Alert.id == alert_id), user).first()
     if not alert:
         raise HTTPException(404, "Alert not found")
     alert.status = data.status

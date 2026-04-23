@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
+import { PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
 import { getDashboardStats, getProblemsWeek, getProblemsMonth } from '../lib/api';
 
 const PIE_COLORS: Record<string, string> = {
@@ -12,8 +12,6 @@ const PIE_LABELS: Record<string, string> = {
   overflow: 'Переполнение',
   contamination: 'Загрязнение',
 };
-const DAYS_RU = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-
 export default function DashboardPage() {
   const [stats, setStats] = useState<any>(null);
   const [weekData, setWeekData] = useState<any[]>([]);

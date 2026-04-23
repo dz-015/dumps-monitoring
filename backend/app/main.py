@@ -1,34 +1,16 @@
-from contextlib import asynccontextmanager
-from backend.app.routers import alerts, auth, cameras, dashboard, predict, sites
+from app.routers import alerts, auth, cameras, dashboard, predict, sites, snapshots
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from backend.app.config import settings
-from backend.app.db.database import engine, SessionLocal, Base
-from backend.app.db.models import *  # noqa: ensure all models are registered
-from backend.app.seed import seed_db
-from backend.app.routers import snapshots
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Create tables
-    Base.metadata.create_all(bind=engine)
-    # Seed demo data
-    db = SessionLocal()
-    try:
-        seed_db(db)
-    finally:
-        db.close()
-    yield
+from app.config import settings
+from app.db.models import *  # noqa: ensure all models are registered with Base.metadata
 
 
 app = FastAPI(
     title="НЭКОБАК API",
     description="API for waste container monitoring system",
     version="0.1.0",
-    lifespan=lifespan,
 )
 
 # CORS

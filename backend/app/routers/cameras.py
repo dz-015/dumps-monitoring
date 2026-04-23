@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-from app.db.models import Camera, Site
+from app.db.models import Camera, Site, User
 from app.schemas import CameraCreate, CameraOut
 from app.auth import get_current_user
 
@@ -17,17 +17,41 @@ def _cam_to_out(cam: Camera, db: Session) -> dict:
     }
 
 
+def _scoped_cameras(query, user: User):
+    """Non-admin users see only cameras on sites of their own organization."""
+    if user.is_admin:
+        return query
+    return query.join(Site, Camera.site_id == Site.id).filter(
+        Site.organization_id == user.organization_id
+    )
+
+
+def _get_camera_or_404(cam_id: int, db: Session, user: User) -> Camera:
+    cam = _scoped_cameras(db.query(Camera).filter(Camera.id == cam_id), user).first()
+    if not cam:
+        raise HTTPException(404, "Camera not found")
+    return cam
+
+
+def _get_site_in_org_or_404(site_id: int, db: Session, user: User) -> Site:
+    q = db.query(Site).filter(Site.id == site_id)
+    if not user.is_admin:
+        q = q.filter(Site.organization_id == user.organization_id)
+    site = q.first()
+    if not site:
+        raise HTTPException(404, "Site not found")
+    return site
+
+
 @router.get("", response_model=list[CameraOut])
-def list_cameras(db: Session = Depends(get_db), _=Depends(get_current_user)):
-    cams = db.query(Camera).order_by(Camera.created_at.desc()).all()
+def list_cameras(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    cams = _scoped_cameras(db.query(Camera), user).order_by(Camera.created_at.desc()).all()
     return [_cam_to_out(c, db) for c in cams]
 
 
 @router.post("", response_model=CameraOut, status_code=201)
-def create_camera(data: CameraCreate, db: Session = Depends(get_db), _=Depends(get_current_user)):
-    site = db.query(Site).filter(Site.id == data.site_id).first()
-    if not site:
-        raise HTTPException(404, "Site not found")
+def create_camera(data: CameraCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    _get_site_in_org_or_404(data.site_id, db, user)
     cam = Camera(**data.model_dump())
     db.add(cam)
     db.commit()
@@ -36,9 +60,7 @@ def create_camera(data: CameraCreate, db: Session = Depends(get_db), _=Depends(g
 
 
 @router.delete("/{camera_id}", status_code=204)
-def delete_camera(camera_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
-    cam = db.query(Camera).filter(Camera.id == camera_id).first()
-    if not cam:
-        raise HTTPException(404, "Camera not found")
+def delete_camera(camera_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    cam = _get_camera_or_404(camera_id, db, user)
     db.delete(cam)
     db.commit()

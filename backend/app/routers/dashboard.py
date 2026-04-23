@@ -1,25 +1,44 @@
 import datetime as dt
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_
+from sqlalchemy import func
 
 from app.db.database import get_db
-from app.db.models import Site, Camera, Alert
+from app.db.models import Alert, Camera, Site, User
 from app.schemas import DashboardStats
 from app.auth import get_current_user
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
 
+def _site_scope(query, user: User):
+    if user.is_admin:
+        return query
+    return query.filter(Site.organization_id == user.organization_id)
+
+
+def _join_site_scope(query, user: User):
+    """For Camera/Alert queries joining to Site."""
+    if user.is_admin:
+        return query
+    return query.join(Site).filter(Site.organization_id == user.organization_id)
+
+
 @router.get("/stats", response_model=DashboardStats)
-def get_stats(db: Session = Depends(get_db), _=Depends(get_current_user)):
-    total_sites = db.query(func.count(Site.id)).scalar() or 0
-    active_cameras = db.query(func.count(Camera.id)).filter(Camera.is_active == True).scalar() or 0
-    open_alerts = db.query(func.count(Alert.id)).filter(Alert.status != "resolved").scalar() or 0
+def get_stats(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    total_sites = _site_scope(db.query(func.count(Site.id)), user).scalar() or 0
+
+    cam_q = db.query(func.count(Camera.id)).filter(Camera.is_active == True)  # noqa: E712
+    active_cameras = _join_site_scope(cam_q, user).scalar() or 0
+
+    alert_q = db.query(func.count(Alert.id)).filter(Alert.status != "resolved")
+    open_alerts = _join_site_scope(alert_q, user).scalar() or 0
 
     status_counts = {}
     for status_val in ["clean", "overflow", "contamination"]:
-        cnt = db.query(func.count(Site.id)).filter(Site.status == status_val).scalar() or 0
+        cnt = _site_scope(
+            db.query(func.count(Site.id)).filter(Site.status == status_val), user
+        ).scalar() or 0
         status_counts[status_val] = cnt
 
     clean_pct = (status_counts.get("clean", 0) / total_sites * 100) if total_sites else 0
@@ -34,36 +53,24 @@ def get_stats(db: Session = Depends(get_db), _=Depends(get_current_user)):
 
 
 @router.get("/problems-week")
-def problems_last_week(db: Session = Depends(get_db), _=Depends(get_current_user)):
-    """Daily alert counts for the last 7 days."""
-    now = dt.datetime.now(dt.timezone.utc)
-    week_ago = now - dt.timedelta(days=7)
-    rows = (
-        db.query(
-            func.date(Alert.created_at).label("day"),
-            func.count(Alert.id).label("count"),
-        )
-        .filter(Alert.created_at >= week_ago)
-        .group_by(func.date(Alert.created_at))
-        .order_by(func.date(Alert.created_at))
-        .all()
-    )
-    return [{"day": str(r.day), "count": r.count} for r in rows]
+def problems_last_week(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    return _problems_since(db, user, days=7)
 
 
 @router.get("/problems-month")
-def problems_last_month(db: Session = Depends(get_db), _=Depends(get_current_user)):
-    """Daily alert counts for the last 31 days."""
-    now = dt.datetime.now(dt.timezone.utc)
-    month_ago = now - dt.timedelta(days=31)
-    rows = (
+def problems_last_month(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    return _problems_since(db, user, days=31)
+
+
+def _problems_since(db: Session, user: User, days: int):
+    since = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=days)
+    q = (
         db.query(
             func.date(Alert.created_at).label("day"),
             func.count(Alert.id).label("count"),
         )
-        .filter(Alert.created_at >= month_ago)
-        .group_by(func.date(Alert.created_at))
-        .order_by(func.date(Alert.created_at))
-        .all()
+        .filter(Alert.created_at >= since)
     )
+    q = _join_site_scope(q, user)
+    rows = q.group_by(func.date(Alert.created_at)).order_by(func.date(Alert.created_at)).all()
     return [{"day": str(r.day), "count": r.count} for r in rows]
