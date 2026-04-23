@@ -67,6 +67,8 @@ class SiteOut(BaseModel):
     status: str
     created_at: dt.datetime
     camera_count: int = 0
+    last_checked: dt.datetime | None = None
+    active_status: str | None = None
 
     class Config:
         from_attributes = True

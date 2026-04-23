@@ -2,18 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Link2, Search, Pencil, X, Plus } from 'lucide-react';
 import { getSites, createSite } from '../lib/api';
+import type { Site } from '../lib/types';
 import StatusBadge from '../components/StatusBadge';
-
-type Site = {
-  id: number;
-  name: string;
-  address: string;
-  status: string;
-  latitude: number | null;
-  longitude: number | null;
-  camera_count: number;
-  created_at: string;
-};
 
 const STATUS_FILTERS = [
   { value: 'all', label: 'Все типы' },
@@ -35,7 +25,7 @@ export default function CamerasPage() {
   }, []);
 
   const filtered = sites
-    .filter((s) => filter === 'all' || s.status === filter)
+    .filter((s) => filter === 'all' || (s.active_status ?? s.status) === filter)
     .filter(
       (s) =>
         search.trim() === '' ||
@@ -97,18 +87,20 @@ export default function CamerasPage() {
                 onClick={() => navigate(`/cameras/${s.id}`)}
               >
                 <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
-                  {new Date(s.created_at).toLocaleString('ru-RU', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
+                  {s.last_checked
+                    ? new Date(s.last_checked).toLocaleString('ru-RU', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })
+                    : '—'}
                 </td>
                 <td className="px-4 py-3 font-medium text-gray-900">{s.name}</td>
                 <td className="px-4 py-3 text-gray-600">{s.address}</td>
                 <td className="px-4 py-3">
-                  <StatusBadge value={s.status} />
+                  <StatusBadge value={s.active_status ?? s.status} />
                 </td>
                 <td className="px-4 py-3 text-right">
                   <button

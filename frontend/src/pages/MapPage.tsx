@@ -38,14 +38,16 @@ export default function MapPage() {
               (s): s is Site & { latitude: number; longitude: number } =>
                 s.latitude !== null && s.longitude !== null
             )
-            .map((site) => (
+            .map((site) => {
+              const derived = site.active_status ?? site.status;
+              return (
               <CircleMarker
                 key={site.id}
                 center={[site.latitude, site.longitude]}
                 radius={10}
                 pathOptions={{
-                  color: STATUS_COLOR[site.status] || '#94a3b8',
-                  fillColor: STATUS_COLOR[site.status] || '#94a3b8',
+                  color: STATUS_COLOR[derived] || '#94a3b8',
+                  fillColor: STATUS_COLOR[derived] || '#94a3b8',
                   fillOpacity: 0.7,
                   weight: 2,
                 }}
@@ -54,7 +56,7 @@ export default function MapPage() {
                   <div className="text-sm min-w-[180px]">
                     <div className="font-semibold mb-1">{site.name}</div>
                     <div className="text-gray-500 text-xs mb-2">{site.address}</div>
-                    <StatusBadge value={site.status} />
+                    <StatusBadge value={derived} />
                     <div className="mt-2">
                       <Link
                         to={`/cameras/${site.id}`}
@@ -66,7 +68,8 @@ export default function MapPage() {
                   </div>
                 </Popup>
               </CircleMarker>
-            ))}
+              );
+            })}
         </MapContainer>
       </div>
 

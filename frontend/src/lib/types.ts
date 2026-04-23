@@ -20,6 +20,8 @@ export interface Site {
   status: SiteStatus;
   created_at: string;
   camera_count: number;
+  last_checked: string | null;
+  active_status: SiteStatus | null;
 }
 
 export interface Camera {

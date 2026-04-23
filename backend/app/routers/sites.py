@@ -12,10 +12,31 @@ router = APIRouter(prefix="/api/sites", tags=["sites"])
 
 def _site_to_out(site: Site, db: Session) -> dict:
     cam_count = db.query(func.count(Camera.id)).filter(Camera.site_id == site.id).scalar()
+    last_checked = (
+        db.query(func.max(Camera.last_checked)).filter(Camera.site_id == site.id).scalar()
+    )
+    active_status = _derive_active_status(site, db)
     return {
         **{c.name: getattr(site, c.name) for c in site.__table__.columns},
         "camera_count": cam_count,
+        "last_checked": last_checked,
+        "active_status": active_status,
     }
+
+
+def _derive_active_status(site: Site, db: Session) -> str:
+    """Unresolved overflow beats unresolved contamination; else fall back to site.status."""
+    unresolved = (
+        db.query(Alert.level)
+        .filter(Alert.site_id == site.id, Alert.status != "resolved")
+        .all()
+    )
+    levels = {row[0] for row in unresolved}
+    if "overflow" in levels:
+        return "overflow"
+    if "contamination" in levels:
+        return "contamination"
+    return site.status
 
 
 def _scoped(query, user: User):
