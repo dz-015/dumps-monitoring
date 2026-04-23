@@ -31,10 +31,14 @@ export const login = (email: string, password: string) =>
     body: JSON.stringify({ email, password }),
   });
 
-export const register = (email: string, password: string, full_name: string) =>
+export type RegisterPayload =
+  | { email: string; password: string; full_name: string; organization_name: string }
+  | { email: string; password: string; full_name: string; join_code: string };
+
+export const register = (payload: RegisterPayload) =>
   request<any>('/auth/register', {
     method: 'POST',
-    body: JSON.stringify({ email, password, full_name }),
+    body: JSON.stringify(payload),
   });
 
 export const getMe = () => request<any>('/auth/me');

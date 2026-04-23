@@ -1,12 +1,12 @@
 import { Link, useLocation, Outlet, Navigate } from 'react-router-dom';
+import { LayoutDashboard, Map, Camera, Bell, LogOut } from 'lucide-react';
 import { useAuthStore } from '../lib/store';
 
 const NAV = [
-  { to: '/', label: 'Панель управления', icon: '📊' },
-  { to: '/map', label: 'Карта', icon: '🗺️' },
-  { to: '/sites', label: 'Площадки', icon: '📍' },
-  { to: '/cameras', label: 'Камеры', icon: '📷' },
-  { to: '/alerts', label: 'Оповещения', icon: '🔔' },
+  { to: '/', label: 'Панель управления', Icon: LayoutDashboard },
+  { to: '/map', label: 'Карта', Icon: Map },
+  { to: '/cameras', label: 'Камеры', Icon: Camera },
+  { to: '/alerts', label: 'Оповещения', Icon: Bell },
 ];
 
 export default function Layout() {
@@ -17,31 +17,30 @@ export default function Layout() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* Sidebar */}
       <aside className="w-56 bg-white border-r border-gray-200 flex flex-col">
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center gap-2">
-            <span className="text-2xl">🗑️</span>
+            <div className="w-8 h-8 rounded-lg bg-gray-900 text-white flex items-center justify-center font-bold text-sm">N</div>
             <span className="font-bold text-lg tracking-tight">НЭКОБАК</span>
           </div>
         </div>
         <nav className="flex-1 p-2">
-          {NAV.map((item) => {
-            const active = item.to === '/'
+          {NAV.map(({ to, label, Icon }) => {
+            const active = to === '/'
               ? location.pathname === '/'
-              : location.pathname.startsWith(item.to);
+              : location.pathname.startsWith(to);
             return (
               <Link
-                key={item.to}
-                to={item.to}
+                key={to}
+                to={to}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm mb-0.5 transition-colors ${
                   active
                     ? 'bg-gray-100 text-gray-900 font-medium'
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`}
               >
-                <span>{item.icon}</span>
-                {item.label}
+                <Icon size={18} strokeWidth={active ? 2.2 : 1.8} />
+                {label}
               </Link>
             );
           })}
@@ -58,14 +57,14 @@ export default function Layout() {
           </div>
           <button
             onClick={logout}
-            className="mt-2 w-full text-xs text-gray-500 hover:text-red-600 transition-colors text-left px-2"
+            className="mt-2 w-full text-xs text-gray-500 hover:text-red-600 transition-colors text-left px-2 flex items-center gap-1.5"
           >
+            <LogOut size={14} />
             Выйти
           </button>
         </div>
       </aside>
 
-      {/* Main content */}
       <main className="flex-1 p-6 overflow-auto">
         <Outlet />
       </main>

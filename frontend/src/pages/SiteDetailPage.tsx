@@ -27,7 +27,7 @@ export default function SiteDetailPage() {
   return (
     <div>
       <div className="flex items-center gap-2 mb-1">
-        <Link to="/sites" className="text-gray-400 hover:text-gray-600 text-sm">← Площадки</Link>
+        <Link to="/cameras" className="text-gray-400 hover:text-gray-600 text-sm">← Камеры</Link>
       </div>
       <div className="flex items-center gap-3 mb-4">
         <h1 className="text-2xl font-bold text-gray-900">{site.name}</h1>

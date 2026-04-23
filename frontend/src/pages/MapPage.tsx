@@ -52,7 +52,7 @@ export default function MapPage() {
                   <div className="text-gray-500 text-xs mb-2">{site.address}</div>
                   <StatusBadge value={site.status} />
                   <div className="mt-2">
-                    <Link to={`/sites/${site.id}`} className="text-blue-500 text-xs hover:underline">
+                    <Link to={`/cameras/${site.id}`} className="text-blue-500 text-xs hover:underline">
                       Подробнее →
                     </Link>
                   </div>
