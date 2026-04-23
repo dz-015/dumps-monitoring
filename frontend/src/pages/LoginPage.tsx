@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Trash2 } from 'lucide-react';
 import { login, getMe, register } from '../lib/api';
@@ -67,32 +67,41 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="space-y-3">
           {mode === 'register' && (
             <Field label="Имя">
-              <input
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
-                required
-              />
+              {(id) => (
+                <input
+                  id={id}
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+                  required
+                />
+              )}
             </Field>
           )}
           <Field label="Email">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
-              required
-            />
+            {(id) => (
+              <input
+                id={id}
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+                required
+              />
+            )}
           </Field>
           <Field label="Пароль">
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              minLength={mode === 'register' ? 8 : undefined}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
-              required
-            />
+            {(id) => (
+              <input
+                id={id}
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                minLength={mode === 'register' ? 8 : undefined}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+                required
+              />
+            )}
           </Field>
 
           {mode === 'register' && (
@@ -110,23 +119,29 @@ export default function LoginPage() {
               </div>
               {orgChoice === 'create' ? (
                 <Field label="Название организации">
-                  <input
-                    value={orgName}
-                    onChange={(e) => setOrgName(e.target.value)}
-                    placeholder="ЖЭК №12"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
-                    required
-                  />
+                  {(id) => (
+                    <input
+                      id={id}
+                      value={orgName}
+                      onChange={(e) => setOrgName(e.target.value)}
+                      placeholder="ЖЭК №12"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+                      required
+                    />
+                  )}
                 </Field>
               ) : (
                 <Field label="Код приглашения">
-                  <input
-                    value={joinCode}
-                    onChange={(e) => setJoinCode(e.target.value)}
-                    placeholder="abc123XYZ"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-sky-400"
-                    required
-                  />
+                  {(id) => (
+                    <input
+                      id={id}
+                      value={joinCode}
+                      onChange={(e) => setJoinCode(e.target.value)}
+                      placeholder="abc123XYZ"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-sky-400"
+                      required
+                    />
+                  )}
                 </Field>
               )}
             </>
@@ -169,11 +184,20 @@ export default function LoginPage() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: (id: string) => React.ReactNode;
+}) {
+  const id = useId();
   return (
     <div>
-      <label className="block text-sm text-gray-700 mb-1">{label}</label>
-      {children}
+      <label htmlFor={id} className="block text-sm text-gray-700 mb-1">
+        {label}
+      </label>
+      {children(id)}
     </div>
   );
 }
