@@ -4,6 +4,7 @@ factories for Organization / User / Site / Camera.
 
 Each test gets a clean DB — no cross-test bleed.
 """
+
 from __future__ import annotations
 
 import secrets
@@ -34,8 +35,8 @@ def db() -> Iterator[Session]:
         dbapi_conn.execute("PRAGMA foreign_keys=ON")
 
     Base.metadata.create_all(bind=engine)
-    TestingSession = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    session = TestingSession()
+    session_factory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    session = session_factory()
     try:
         yield session
     finally:

@@ -1,5 +1,4 @@
 """Alerts and dashboard must also respect organization boundaries."""
-import datetime as dt
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -14,10 +13,12 @@ def test_user_sees_only_own_org_alerts(db: Session, client: TestClient) -> None:
     user_a = make_user(db, email="a@test.local", org=org_a)
     site_a = make_site(db, org_a, "A-site")
     site_b = make_site(db, org_b, "B-site")
-    db.add_all([
-        Alert(site_id=site_a.id, level="overflow", status="new"),
-        Alert(site_id=site_b.id, level="overflow", status="new"),
-    ])
+    db.add_all(
+        [
+            Alert(site_id=site_a.id, level="overflow", status="new"),
+            Alert(site_id=site_b.id, level="overflow", status="new"),
+        ]
+    )
     db.commit()
 
     resp = client.get("/api/alerts", headers=auth_headers(user_a))

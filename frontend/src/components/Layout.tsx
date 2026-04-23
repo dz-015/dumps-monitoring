@@ -20,15 +20,16 @@ export default function Layout() {
       <aside className="w-56 bg-white border-r border-gray-200 flex flex-col">
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gray-900 text-white flex items-center justify-center font-bold text-sm">N</div>
+            <div className="w-8 h-8 rounded-lg bg-gray-900 text-white flex items-center justify-center font-bold text-sm">
+              N
+            </div>
             <span className="font-bold text-lg tracking-tight">НЭКОБАК</span>
           </div>
         </div>
         <nav className="flex-1 p-2">
           {NAV.map(({ to, label, Icon }) => {
-            const active = to === '/'
-              ? location.pathname === '/'
-              : location.pathname.startsWith(to);
+            const active =
+              to === '/' ? location.pathname === '/' : location.pathname.startsWith(to);
             return (
               <Link
                 key={to}
@@ -51,7 +52,9 @@ export default function Layout() {
               {user?.full_name?.[0] || '?'}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-gray-900 truncate">{user?.full_name || 'Пользователь'}</div>
+              <div className="text-sm font-medium text-gray-900 truncate">
+                {user?.full_name || 'Пользователь'}
+              </div>
               <div className="text-xs text-gray-500 truncate">{user?.email || ''}</div>
             </div>
           </div>

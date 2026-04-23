@@ -1,7 +1,18 @@
 import { useEffect, useState } from 'react';
 import { MapPin, Camera as CameraIcon, Bell, CheckCircle2, ArrowUpRight } from 'lucide-react';
-import { PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
+import {
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Area,
+  AreaChart,
+} from 'recharts';
 import { getDashboardStats, getProblemsWeek, getProblemsMonth } from '../lib/api';
+import type { DashboardStats, ProblemsPoint } from '../lib/types';
 
 const PIE_COLORS: Record<string, string> = {
   clean: '#22c55e',
@@ -15,9 +26,9 @@ const PIE_LABELS: Record<string, string> = {
 };
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState<any>(null);
-  const [weekData, setWeekData] = useState<any[]>([]);
-  const [monthData, setMonthData] = useState<any[]>([]);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [weekData, setWeekData] = useState<ProblemsPoint[]>([]);
+  const [monthData, setMonthData] = useState<ProblemsPoint[]>([]);
 
   useEffect(() => {
     getDashboardStats().then(setStats);
@@ -40,9 +51,25 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-4 gap-4 mb-6">
         <KpiCard label="Всего площадок" value={stats.total_sites} Icon={MapPin} tint="slate" />
-        <KpiCard label="Активные камеры" value={stats.active_cameras} Icon={CameraIcon} tint="green" />
-        <KpiCard label="Оповещения" value={stats.open_alerts} sub="Открыть" Icon={Bell} tint="amber" />
-        <KpiCard label="Чистых площадок" value={`${stats.clean_percent}%`} Icon={CheckCircle2} tint="green" />
+        <KpiCard
+          label="Активные камеры"
+          value={stats.active_cameras}
+          Icon={CameraIcon}
+          tint="green"
+        />
+        <KpiCard
+          label="Оповещения"
+          value={stats.open_alerts}
+          sub="Открыть"
+          Icon={Bell}
+          tint="amber"
+        />
+        <KpiCard
+          label="Чистых площадок"
+          value={`${stats.clean_percent}%`}
+          Icon={CheckCircle2}
+          tint="green"
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-4 mb-6">
@@ -50,8 +77,16 @@ export default function DashboardPage() {
           <div className="flex items-center gap-6 pt-2">
             <ResponsiveContainer width={160} height={160}>
               <PieChart>
-                <Pie data={pieData} dataKey="value" innerRadius={48} outerRadius={72} paddingAngle={2}>
-                  {pieData.map((d, i) => <Cell key={i} fill={d.color} />)}
+                <Pie
+                  data={pieData}
+                  dataKey="value"
+                  innerRadius={48}
+                  outerRadius={72}
+                  paddingAngle={2}
+                >
+                  {pieData.map((d, i) => (
+                    <Cell key={i} fill={d.color} />
+                  ))}
                 </Pie>
               </PieChart>
             </ResponsiveContainer>
@@ -73,7 +108,13 @@ export default function DashboardPage() {
               <XAxis dataKey="day" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip />
-              <Area type="monotone" dataKey="count" stroke="#3b82f6" fill="#dbeafe" strokeWidth={2} />
+              <Area
+                type="monotone"
+                dataKey="count"
+                stroke="#3b82f6"
+                fill="#dbeafe"
+                strokeWidth={2}
+              />
             </AreaChart>
           </ResponsiveContainer>
         </Card>
@@ -100,7 +141,11 @@ const TINTS: Record<string, { bg: string; fg: string }> = {
 };
 
 function KpiCard({
-  label, value, sub, Icon, tint = 'slate',
+  label,
+  value,
+  sub,
+  Icon,
+  tint = 'slate',
 }: {
   label: string;
   value: string | number;
@@ -130,8 +175,14 @@ function KpiCard({
 }
 
 function Card({
-  title, subtitle, children,
-}: { title: string; subtitle?: string; children: React.ReactNode }) {
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="bg-white rounded-xl p-5 border border-gray-200">
       <h2 className="font-semibold text-gray-900">{title}</h2>

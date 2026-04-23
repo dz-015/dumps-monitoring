@@ -1,5 +1,6 @@
 import datetime as dt
-from sqlalchemy import String, Integer, Float, Boolean, DateTime, ForeignKey, func
+
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
@@ -26,7 +27,9 @@ class User(Base):
     full_name: Mapped[str] = mapped_column(String(255), default="")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
-    organization_id: Mapped[int | None] = mapped_column(ForeignKey("organizations.id"), nullable=True)
+    organization_id: Mapped[int | None] = mapped_column(
+        ForeignKey("organizations.id"), nullable=True
+    )
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, server_default=func.now())
 
     organization = relationship("Organization", back_populates="users")
@@ -41,7 +44,9 @@ class Site(Base):
     address: Mapped[str] = mapped_column(String(512), default="")
     latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
-    status: Mapped[str] = mapped_column(String(50), default="clean")  # clean | overflow | contamination
+    status: Mapped[str] = mapped_column(
+        String(50), default="clean"
+    )  # clean | overflow | contamination
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, server_default=func.now())
 
     organization = relationship("Organization", back_populates="sites")
@@ -82,7 +87,9 @@ class Detection(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     snapshot_id: Mapped[int] = mapped_column(ForeignKey("snapshots.id"))
-    class_name: Mapped[str] = mapped_column(String(50))  # metal_ok, metal_overflow, ..., ground_trash
+    class_name: Mapped[str] = mapped_column(
+        String(50)
+    )  # metal_ok, metal_overflow, ..., ground_trash
     confidence: Mapped[float] = mapped_column(Float)
     x: Mapped[float] = mapped_column(Float)  # normalized 0..1
     y: Mapped[float] = mapped_column(Float)

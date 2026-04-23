@@ -10,7 +10,9 @@ const COLORS: Record<string, { bg: string; text: string; label: string }> = {
 export default function StatusBadge({ value }: { value: string }) {
   const c = COLORS[value] || { bg: 'bg-gray-100', text: 'text-gray-700', label: value };
   return (
-    <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${c.bg} ${c.text}`}>
+    <span
+      className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${c.bg} ${c.text}`}
+    >
       {c.label}
     </span>
   );

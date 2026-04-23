@@ -74,13 +74,7 @@ export default function BboxOverlay({ imageUrl, detections, width = 640, height 
                 fill={color}
                 rx={2}
               />
-              <text
-                x={bx + 3}
-                y={by - 4}
-                fill="white"
-                fontSize={10}
-                fontFamily="sans-serif"
-              >
+              <text x={bx + 3} y={by - 4} fill="white" fontSize={10} fontFamily="sans-serif">
                 {label} {(d.confidence * 100).toFixed(0)}%
               </text>
             </g>

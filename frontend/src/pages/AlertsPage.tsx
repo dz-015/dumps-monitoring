@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getAlerts, updateAlert } from '../lib/api';
 import StatusBadge from '../components/StatusBadge';
@@ -23,7 +23,7 @@ export default function AlertsPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [expanded, setExpanded] = useState<number | null>(null);
 
-  const load = () => {
+  const load = useCallback(() => {
     getAlerts({
       level: levelFilter || undefined,
       status: statusFilter || undefined,
@@ -33,9 +33,11 @@ export default function AlertsPage() {
       setAlerts(res.items);
       setTotal(res.total);
     });
-  };
+  }, [page, levelFilter, statusFilter]);
 
-  useEffect(() => { load(); }, [page, levelFilter, statusFilter]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
 
@@ -47,12 +49,17 @@ export default function AlertsPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900">Оповещения</h1>
-      <p className="text-sm text-gray-500 mb-4">Управление оповещениями о загрязнениях и переполнениях</p>
+      <p className="text-sm text-gray-500 mb-4">
+        Управление оповещениями о загрязнениях и переполнениях
+      </p>
 
       <div className="flex gap-2 mb-4">
         <FilterSelect
           value={levelFilter}
-          onChange={(v) => { setLevelFilter(v); setPage(1); }}
+          onChange={(v) => {
+            setLevelFilter(v);
+            setPage(1);
+          }}
           options={[
             { value: '', label: 'Все уровни' },
             { value: 'overflow', label: 'Переполнение' },
@@ -61,7 +68,10 @@ export default function AlertsPage() {
         />
         <FilterSelect
           value={statusFilter}
-          onChange={(v) => { setStatusFilter(v); setPage(1); }}
+          onChange={(v) => {
+            setStatusFilter(v);
+            setPage(1);
+          }}
           options={[
             { value: '', label: 'Все статусы' },
             { value: 'new', label: 'Новый' },
@@ -98,8 +108,12 @@ export default function AlertsPage() {
                     <td className="px-4 py-3 text-gray-900">
                       {a.site_name || `Площадка #${a.site_id}`}
                     </td>
-                    <td className="px-4 py-3"><StatusBadge value={a.level} /></td>
-                    <td className="px-4 py-3"><StatusBadge value={a.status} /></td>
+                    <td className="px-4 py-3">
+                      <StatusBadge value={a.level} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <StatusBadge value={a.status} />
+                    </td>
                     <td className="px-4 py-3 text-right text-gray-400">
                       {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </td>
@@ -125,7 +139,10 @@ export default function AlertsPage() {
                               </ActionButton>
                             )}
                             {a.status === 'accepted' && (
-                              <ActionButton onClick={() => handleStatusChange(a.id, 'resolved')} tone="green">
+                              <ActionButton
+                                onClick={() => handleStatusChange(a.id, 'resolved')}
+                                tone="green"
+                              >
                                 Отметить решённым
                               </ActionButton>
                             )}
@@ -153,13 +170,11 @@ export default function AlertsPage() {
           </PagerButton>
           {pagerNumbers(page, totalPages).map((n, i) =>
             n === '…' ? (
-              <span key={i} className="px-2 text-gray-400">…</span>
+              <span key={i} className="px-2 text-gray-400">
+                …
+              </span>
             ) : (
-              <PagerButton
-                key={i}
-                active={n === page}
-                onClick={() => setPage(n as number)}
-              >
+              <PagerButton key={i} active={n === page} onClick={() => setPage(n as number)}>
                 {n}
               </PagerButton>
             )
@@ -176,8 +191,11 @@ export default function AlertsPage() {
 function formatDate(iso: string) {
   const d = new Date(iso);
   return d.toLocaleString('ru-RU', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 }
 
@@ -192,28 +210,45 @@ function pagerNumbers(current: number, total: number): (number | '…')[] {
 }
 
 function FilterSelect({
-  value, onChange, options,
-}: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
+  value,
+  onChange,
+  options,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+}) {
   return (
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-sky-400"
     >
-      {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      {options.map((o) => (
+        <option key={o.value} value={o.value}>
+          {o.label}
+        </option>
+      ))}
     </select>
   );
 }
 
 function ActionButton({
-  children, onClick, tone = 'blue',
-}: { children: React.ReactNode; onClick: () => void; tone?: 'blue' | 'green' }) {
-  const cls = tone === 'green'
-    ? 'bg-green-500 hover:bg-green-600'
-    : 'bg-sky-500 hover:bg-sky-600';
+  children,
+  onClick,
+  tone = 'blue',
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  tone?: 'blue' | 'green';
+}) {
+  const cls = tone === 'green' ? 'bg-green-500 hover:bg-green-600' : 'bg-sky-500 hover:bg-sky-600';
   return (
     <button
-      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
       className={`${cls} text-white text-xs font-medium px-3 py-1.5 rounded-lg`}
     >
       {children}
@@ -222,8 +257,16 @@ function ActionButton({
 }
 
 function PagerButton({
-  children, onClick, disabled, active,
-}: { children: React.ReactNode; onClick?: () => void; disabled?: boolean; active?: boolean }) {
+  children,
+  onClick,
+  disabled,
+  active,
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+  active?: boolean;
+}) {
   return (
     <button
       onClick={onClick}

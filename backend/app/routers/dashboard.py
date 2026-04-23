@@ -1,12 +1,13 @@
 import datetime as dt
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-from sqlalchemy import func
 
+from fastapi import APIRouter, Depends
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+
+from app.auth import get_current_user
 from app.db.database import get_db
 from app.db.models import Alert, Camera, Site, User
 from app.schemas import DashboardStats
-from app.auth import get_current_user
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
@@ -36,9 +37,12 @@ def get_stats(db: Session = Depends(get_db), user: User = Depends(get_current_us
 
     status_counts = {}
     for status_val in ["clean", "overflow", "contamination"]:
-        cnt = _site_scope(
-            db.query(func.count(Site.id)).filter(Site.status == status_val), user
-        ).scalar() or 0
+        cnt = (
+            _site_scope(
+                db.query(func.count(Site.id)).filter(Site.status == status_val), user
+            ).scalar()
+            or 0
+        )
         status_counts[status_val] = cnt
 
     clean_pct = (status_counts.get("clean", 0) / total_sites * 100) if total_sites else 0
@@ -63,14 +67,11 @@ def problems_last_month(db: Session = Depends(get_db), user: User = Depends(get_
 
 
 def _problems_since(db: Session, user: User, days: int):
-    since = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=days)
-    q = (
-        db.query(
-            func.date(Alert.created_at).label("day"),
-            func.count(Alert.id).label("count"),
-        )
-        .filter(Alert.created_at >= since)
-    )
+    since = dt.datetime.now(dt.UTC) - dt.timedelta(days=days)
+    q = db.query(
+        func.date(Alert.created_at).label("day"),
+        func.count(Alert.id).label("count"),
+    ).filter(Alert.created_at >= since)
     q = _join_site_scope(q, user)
     rows = q.group_by(func.date(Alert.created_at)).order_by(func.date(Alert.created_at)).all()
     return [{"day": str(r.day), "count": r.count} for r in rows]

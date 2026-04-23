@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getSite, getSiteSnapshots, getSiteAlerts } from '../lib/api';
+import type { Alert, Site, Snapshot } from '../lib/types';
 import StatusBadge from '../components/StatusBadge';
 import BboxOverlay from '../components/BboxOverlay';
 
 export default function SiteDetailPage() {
   const { id } = useParams();
-  const [site, setSite] = useState<any>(null);
-  const [snapshots, setSnapshots] = useState<any[]>([]);
-  const [alerts, setAlerts] = useState<any[]>([]);
-  const [selectedSnap, setSelectedSnap] = useState<any>(null);
+  const [site, setSite] = useState<Site | null>(null);
+  const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [selectedSnap, setSelectedSnap] = useState<Snapshot | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -27,7 +28,9 @@ export default function SiteDetailPage() {
   return (
     <div>
       <div className="flex items-center gap-2 mb-1">
-        <Link to="/cameras" className="text-gray-400 hover:text-gray-600 text-sm">← Камеры</Link>
+        <Link to="/cameras" className="text-gray-400 hover:text-gray-600 text-sm">
+          ← Камеры
+        </Link>
       </div>
       <div className="flex items-center gap-3 mb-4">
         <h1 className="text-2xl font-bold text-gray-900">{site.name}</h1>
@@ -38,7 +41,9 @@ export default function SiteDetailPage() {
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded-xl p-4 border border-gray-200">
           <div className="text-xs text-gray-500 mb-1">Координаты</div>
-          <div className="text-sm font-medium">{site.latitude?.toFixed(5)}, {site.longitude?.toFixed(5)}</div>
+          <div className="text-sm font-medium">
+            {site.latitude?.toFixed(5)}, {site.longitude?.toFixed(5)}
+          </div>
         </div>
         <div className="bg-white rounded-xl p-4 border border-gray-200">
           <div className="text-xs text-gray-500 mb-1">Камеры</div>
@@ -46,7 +51,9 @@ export default function SiteDetailPage() {
         </div>
         <div className="bg-white rounded-xl p-4 border border-gray-200">
           <div className="text-xs text-gray-500 mb-1">Открытых оповещений</div>
-          <div className="text-sm font-medium">{alerts.filter((a) => a.status !== 'resolved').length}</div>
+          <div className="text-sm font-medium">
+            {alerts.filter((a) => a.status !== 'resolved').length}
+          </div>
         </div>
       </div>
 
@@ -62,7 +69,7 @@ export default function SiteDetailPage() {
               height={480}
             />
             <div className="text-xs text-gray-400 mt-2">
-              {new Date(selectedSnap.created_at).toLocaleString('ru-RU')}
+              {new Date(selectedSnap.taken_at).toLocaleString('ru-RU')}
               {selectedSnap.camera_id && ` · Камера #${selectedSnap.camera_id}`}
             </div>
           </div>
@@ -98,7 +105,10 @@ export default function SiteDetailPage() {
         {alerts.length > 0 ? (
           <div className="space-y-2">
             {alerts.map((a) => (
-              <div key={a.id} className="flex items-center gap-3 text-sm py-2 border-b border-gray-50 last:border-0">
+              <div
+                key={a.id}
+                className="flex items-center gap-3 text-sm py-2 border-b border-gray-50 last:border-0"
+              >
                 <StatusBadge value={a.level} />
                 <StatusBadge value={a.status} />
                 <span className="text-gray-400 text-xs ml-auto">

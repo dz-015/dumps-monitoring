@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
 from sqlalchemy import func
+from sqlalchemy.orm import Session
 
+from app.auth import get_current_user
 from app.db.database import get_db
 from app.db.models import Alert, Camera, Site, Snapshot, User
 from app.schemas import AlertOut, SiteCreate, SiteOut, SiteUpdate, SnapshotOut
-from app.auth import get_current_user
 
 router = APIRouter(prefix="/api/sites", tags=["sites"])
 
@@ -45,7 +45,9 @@ def get_site(site_id: int, db: Session = Depends(get_db), user: User = Depends(g
 
 
 @router.post("", response_model=SiteOut, status_code=201)
-def create_site(data: SiteCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def create_site(
+    data: SiteCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)
+):
     if user.organization_id is None:
         raise HTTPException(400, "User has no organization — cannot create a site")
     site = Site(**data.model_dump(), organization_id=user.organization_id)
@@ -56,7 +58,12 @@ def create_site(data: SiteCreate, db: Session = Depends(get_db), user: User = De
 
 
 @router.patch("/{site_id}", response_model=SiteOut)
-def update_site(site_id: int, data: SiteUpdate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def update_site(
+    site_id: int,
+    data: SiteUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
     site = _get_site_or_404(site_id, db, user)
     for k, v in data.model_dump(exclude_unset=True).items():
         setattr(site, k, v)
@@ -66,7 +73,9 @@ def update_site(site_id: int, data: SiteUpdate, db: Session = Depends(get_db), u
 
 
 @router.delete("/{site_id}", status_code=204)
-def delete_site(site_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def delete_site(
+    site_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
+):
     site = _get_site_or_404(site_id, db, user)
     db.delete(site)
     db.commit()

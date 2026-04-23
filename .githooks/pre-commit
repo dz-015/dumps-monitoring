@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Project-local pre-commit hook. Enable once with:
+#   git config core.hooksPath .githooks
+#
+# Runs fast quality gates on every commit: backend ruff + pytest,
+# frontend eslint + vitest. Aborts commit on any failure.
+set -e
+
+ROOT="$(git rev-parse --show-toplevel)"
+
+echo "▸ backend: ruff check"
+(cd "$ROOT/backend" && ./venv/bin/ruff check .)
+
+echo "▸ backend: pytest -q"
+(cd "$ROOT/backend" && ./venv/bin/pytest -q)
+
+echo "▸ frontend: eslint"
+(cd "$ROOT/frontend" && npx --no-install eslint .)
+
+echo "▸ frontend: vitest run"
+(cd "$ROOT/frontend" && npm test --silent)
+
+echo "✓ pre-commit OK"

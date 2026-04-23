@@ -23,9 +23,7 @@ describe('BboxOverlay', () => {
     const { container } = render(
       <BboxOverlay
         imageUrl="/fake.jpg"
-        detections={[
-          { class_name: 'metal_ok', confidence: 1, x: 0.5, y: 0.5, w: 0.2, h: 0.2 },
-        ]}
+        detections={[{ class_name: 'metal_ok', confidence: 1, x: 0.5, y: 0.5, w: 0.2, h: 0.2 }]}
         width={100}
         height={100}
       />
@@ -52,8 +50,8 @@ describe('BboxOverlay', () => {
         height={100}
       />
     );
-    const strokes = Array.from(container.querySelectorAll('rect[fill="none"]')).map(
-      (r) => r.getAttribute('stroke')
+    const strokes = Array.from(container.querySelectorAll('rect[fill="none"]')).map((r) =>
+      r.getAttribute('stroke')
     );
     expect(strokes).toEqual(['#ef4444', '#22c55e', '#f97316']);
   });
@@ -62,9 +60,7 @@ describe('BboxOverlay', () => {
     const { container } = render(
       <BboxOverlay
         imageUrl="/fake.jpg"
-        detections={[
-          { class_name: 'mystery_bin', confidence: 1, x: 0.5, y: 0.5, w: 0.1, h: 0.1 },
-        ]}
+        detections={[{ class_name: 'mystery_bin', confidence: 1, x: 0.5, y: 0.5, w: 0.1, h: 0.1 }]}
         width={100}
         height={100}
       />
@@ -77,9 +73,7 @@ describe('BboxOverlay', () => {
     const { getByText } = render(
       <BboxOverlay
         imageUrl="/fake.jpg"
-        detections={[
-          { class_name: 'metal_ok', confidence: 0.872, x: 0.5, y: 0.5, w: 0.1, h: 0.1 },
-        ]}
+        detections={[{ class_name: 'metal_ok', confidence: 0.872, x: 0.5, y: 0.5, w: 0.1, h: 0.1 }]}
         width={100}
         height={100}
       />

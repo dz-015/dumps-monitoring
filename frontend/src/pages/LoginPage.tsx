@@ -36,14 +36,15 @@ export default function LoginPage() {
       if (mode === 'login') {
         await finishLogin(email, password);
       } else {
-        const payload = orgChoice === 'create'
-          ? { email, password, full_name: fullName, organization_name: orgName }
-          : { email, password, full_name: fullName, join_code: joinCode };
+        const payload =
+          orgChoice === 'create'
+            ? { email, password, full_name: fullName, organization_name: orgName }
+            : { email, password, full_name: fullName, join_code: joinCode };
         await register(payload);
         await finishLogin(email, password);
       }
-    } catch (err: any) {
-      setError(err.message || 'Произошла ошибка');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Произошла ошибка');
     } finally {
       setLoading(false);
     }
@@ -97,7 +98,10 @@ export default function LoginPage() {
           {mode === 'register' && (
             <>
               <div className="flex gap-2 text-sm pt-1">
-                <ChoiceButton active={orgChoice === 'create'} onClick={() => setOrgChoice('create')}>
+                <ChoiceButton
+                  active={orgChoice === 'create'}
+                  onClick={() => setOrgChoice('create')}
+                >
                   Создать организацию
                 </ChoiceButton>
                 <ChoiceButton active={orgChoice === 'join'} onClick={() => setOrgChoice('join')}>
@@ -152,7 +156,10 @@ export default function LoginPage() {
 
         <button
           type="button"
-          onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }}
+          onClick={() => {
+            setMode(mode === 'login' ? 'register' : 'login');
+            setError('');
+          }}
           className="w-full mt-3 border border-gray-200 text-gray-700 font-medium py-2.5 rounded-lg hover:bg-gray-50 text-sm"
         >
           {mode === 'login' ? 'Зарегистрироваться' : 'Уже есть аккаунт — войти'}
@@ -172,8 +179,14 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function ChoiceButton({
-  active, onClick, children,
-}: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
   return (
     <button
       type="button"

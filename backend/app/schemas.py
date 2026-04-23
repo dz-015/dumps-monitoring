@@ -1,5 +1,6 @@
 import datetime as dt
-from pydantic import BaseModel, EmailStr
+
+from pydantic import BaseModel
 
 
 # ── Auth ──────────────────────────────────────────────
@@ -8,7 +9,8 @@ class UserCreate(BaseModel):
     password: str
     full_name: str = ""
     organization_name: str | None = None  # create a new org
-    join_code: str | None = None          # or join an existing one
+    join_code: str | None = None  # or join an existing one
+
 
 class UserOut(BaseModel):
     id: int
@@ -17,19 +19,24 @@ class UserOut(BaseModel):
     is_active: bool
     is_admin: bool = False
     organization_id: int | None = None
+
     class Config:
         from_attributes = True
+
 
 class OrganizationOut(BaseModel):
     id: int
     name: str
     join_code: str
+
     class Config:
         from_attributes = True
+
 
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
 
 class LoginRequest(BaseModel):
     email: str
@@ -43,11 +50,13 @@ class SiteCreate(BaseModel):
     latitude: float | None = None
     longitude: float | None = None
 
+
 class SiteUpdate(BaseModel):
     name: str | None = None
     address: str | None = None
     latitude: float | None = None
     longitude: float | None = None
+
 
 class SiteOut(BaseModel):
     id: int
@@ -58,6 +67,7 @@ class SiteOut(BaseModel):
     status: str
     created_at: dt.datetime
     camera_count: int = 0
+
     class Config:
         from_attributes = True
 
@@ -68,6 +78,7 @@ class CameraCreate(BaseModel):
     name: str
     rtsp_url: str
 
+
 class CameraOut(BaseModel):
     id: int
     site_id: int
@@ -77,6 +88,7 @@ class CameraOut(BaseModel):
     last_checked: dt.datetime | None
     created_at: dt.datetime
     site_name: str = ""
+
     class Config:
         from_attributes = True
 
@@ -91,8 +103,10 @@ class AlertOut(BaseModel):
     created_at: dt.datetime
     resolved_at: dt.datetime | None
     site_name: str = ""
+
     class Config:
         from_attributes = True
+
 
 class AlertStatusUpdate(BaseModel):
     status: str  # new | accepted | resolved
@@ -107,6 +121,7 @@ class DetectionOut(BaseModel):
     y: float
     w: float
     h: float
+
     class Config:
         from_attributes = True
 
@@ -119,6 +134,7 @@ class SnapshotOut(BaseModel):
     image_path: str
     taken_at: dt.datetime
     detections: list[DetectionOut] = []
+
     class Config:
         from_attributes = True
 
@@ -140,6 +156,7 @@ class PredictionBox(BaseModel):
     y: float
     w: float
     h: float
+
 
 class PredictResponse(BaseModel):
     detections: list[PredictionBox]

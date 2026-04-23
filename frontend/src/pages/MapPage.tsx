@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
 import { Link } from 'react-router-dom';
 import { getSites } from '../lib/api';
+import type { Site } from '../lib/types';
 import StatusBadge from '../components/StatusBadge';
 import 'leaflet/dist/leaflet.css';
 
@@ -12,7 +13,7 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export default function MapPage() {
-  const [sites, setSites] = useState<any[]>([]);
+  const [sites, setSites] = useState<Site[]>([]);
 
   useEffect(() => {
     getSites().then(setSites);
@@ -23,43 +24,49 @@ export default function MapPage() {
       <h1 className="text-2xl font-bold text-gray-900">Карта</h1>
       <p className="text-sm text-gray-500 mb-4">Расположение контейнерных площадок</p>
 
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden" style={{ height: 'calc(100vh - 180px)' }}>
-        <MapContainer
-          center={[44.952, 34.1]}
-          zoom={13}
-          className="w-full h-full"
-          scrollWheelZoom
-        >
+      <div
+        className="bg-white rounded-xl border border-gray-200 overflow-hidden"
+        style={{ height: 'calc(100vh - 180px)' }}
+      >
+        <MapContainer center={[44.952, 34.1]} zoom={13} className="w-full h-full" scrollWheelZoom>
           <TileLayer
             attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          {sites.map((site) => (
-            <CircleMarker
-              key={site.id}
-              center={[site.latitude, site.longitude]}
-              radius={10}
-              pathOptions={{
-                color: STATUS_COLOR[site.status] || '#94a3b8',
-                fillColor: STATUS_COLOR[site.status] || '#94a3b8',
-                fillOpacity: 0.7,
-                weight: 2,
-              }}
-            >
-              <Popup>
-                <div className="text-sm min-w-[180px]">
-                  <div className="font-semibold mb-1">{site.name}</div>
-                  <div className="text-gray-500 text-xs mb-2">{site.address}</div>
-                  <StatusBadge value={site.status} />
-                  <div className="mt-2">
-                    <Link to={`/cameras/${site.id}`} className="text-blue-500 text-xs hover:underline">
-                      Подробнее →
-                    </Link>
+          {sites
+            .filter(
+              (s): s is Site & { latitude: number; longitude: number } =>
+                s.latitude !== null && s.longitude !== null
+            )
+            .map((site) => (
+              <CircleMarker
+                key={site.id}
+                center={[site.latitude, site.longitude]}
+                radius={10}
+                pathOptions={{
+                  color: STATUS_COLOR[site.status] || '#94a3b8',
+                  fillColor: STATUS_COLOR[site.status] || '#94a3b8',
+                  fillOpacity: 0.7,
+                  weight: 2,
+                }}
+              >
+                <Popup>
+                  <div className="text-sm min-w-[180px]">
+                    <div className="font-semibold mb-1">{site.name}</div>
+                    <div className="text-gray-500 text-xs mb-2">{site.address}</div>
+                    <StatusBadge value={site.status} />
+                    <div className="mt-2">
+                      <Link
+                        to={`/cameras/${site.id}`}
+                        className="text-blue-500 text-xs hover:underline"
+                      >
+                        Подробнее →
+                      </Link>
+                    </div>
                   </div>
-                </div>
-              </Popup>
-            </CircleMarker>
-          ))}
+                </Popup>
+              </CircleMarker>
+            ))}
         </MapContainer>
       </div>
 

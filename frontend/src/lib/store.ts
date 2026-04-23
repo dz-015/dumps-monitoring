@@ -1,9 +1,10 @@
 import { create } from 'zustand';
+import type { User } from './types';
 
 interface AuthState {
   token: string | null;
-  user: any | null;
-  setAuth: (token: string, user: any) => void;
+  user: User | null;
+  setAuth: (token: string, user: User) => void;
   logout: () => void;
 }
 

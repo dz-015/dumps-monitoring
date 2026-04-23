@@ -1,11 +1,12 @@
 import datetime as dt
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from app.auth import get_current_user
 from app.db.database import get_db
 from app.db.models import Alert, Site, User
 from app.schemas import AlertOut, AlertStatusUpdate
-from app.auth import get_current_user
 
 router = APIRouter(prefix="/api/alerts", tags=["alerts"])
 
@@ -39,10 +40,12 @@ def list_alerts(
     items = []
     for a in alerts:
         site = db.query(Site).filter(Site.id == a.site_id).first()
-        items.append({
-            **{c.name: getattr(a, c.name) for c in a.__table__.columns},
-            "site_name": site.name if site else "",
-        })
+        items.append(
+            {
+                **{c.name: getattr(a, c.name) for c in a.__table__.columns},
+                "site_name": site.name if site else "",
+            }
+        )
     return {"items": items, "total": total}
 
 
@@ -58,7 +61,7 @@ def update_alert_status(
         raise HTTPException(404, "Alert not found")
     alert.status = data.status
     if data.status == "resolved":
-        alert.resolved_at = dt.datetime.now(dt.timezone.utc)
+        alert.resolved_at = dt.datetime.now(dt.UTC)
     db.commit()
     db.refresh(alert)
     site = db.query(Site).filter(Site.id == alert.site_id).first()

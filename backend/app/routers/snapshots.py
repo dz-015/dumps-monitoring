@@ -1,11 +1,11 @@
+import os
+
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-import os
 
 from app.db.database import get_db
 from app.db.models import Snapshot
-from app.config import settings
 
 router = APIRouter(prefix="/api/snapshots", tags=["snapshots"])
 

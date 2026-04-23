@@ -3,24 +3,66 @@
 Run: `python -m app.seed` from `backend/` (after `alembic upgrade head`).
 Idempotent — re-running is a no-op if any User already exists.
 """
+
 import datetime as dt
 import random
 import secrets
+
 from sqlalchemy.orm import Session
 
+from app.auth import hash_password
 from app.db.database import SessionLocal
 from app.db.models import Alert, Camera, Organization, Site, User
-from app.auth import hash_password
 
 SITES_DATA = [
-    {"name": "Площадка Москольцо", "address": "ул. Москольцо, 15, Симферополь", "latitude": 44.952, "longitude": 34.102},
-    {"name": "Площадка Центральный Рынок", "address": "ул. Кирова, 2, Симферополь", "latitude": 44.949, "longitude": 34.098},
-    {"name": "Площадка Парк Гагарина", "address": "ул. Гагарина, 50, Симферополь", "latitude": 44.940, "longitude": 34.110},
-    {"name": "Площадка Марьино", "address": "ул. Марьинская, 8, Симферополь", "latitude": 44.958, "longitude": 34.120},
-    {"name": "Площадка ЦУМ", "address": "ул. Карла Маркса, 12, Симферополь", "latitude": 44.951, "longitude": 34.100},
-    {"name": "Площадка Ак-Мечеть", "address": "ул. Ак-Мечетская, 3, Симферополь", "latitude": 44.945, "longitude": 34.085},
-    {"name": "Площадка Каменка", "address": "ул. Каменская, 22, Симферополь", "latitude": 44.935, "longitude": 34.095},
-    {"name": "Площадка Залесская", "address": "ул. Залесская, 7, Симферополь", "latitude": 44.960, "longitude": 34.115},
+    {
+        "name": "Площадка Москольцо",
+        "address": "ул. Москольцо, 15, Симферополь",
+        "latitude": 44.952,
+        "longitude": 34.102,
+    },
+    {
+        "name": "Площадка Центральный Рынок",
+        "address": "ул. Кирова, 2, Симферополь",
+        "latitude": 44.949,
+        "longitude": 34.098,
+    },
+    {
+        "name": "Площадка Парк Гагарина",
+        "address": "ул. Гагарина, 50, Симферополь",
+        "latitude": 44.940,
+        "longitude": 34.110,
+    },
+    {
+        "name": "Площадка Марьино",
+        "address": "ул. Марьинская, 8, Симферополь",
+        "latitude": 44.958,
+        "longitude": 34.120,
+    },
+    {
+        "name": "Площадка ЦУМ",
+        "address": "ул. Карла Маркса, 12, Симферополь",
+        "latitude": 44.951,
+        "longitude": 34.100,
+    },
+    {
+        "name": "Площадка Ак-Мечеть",
+        "address": "ул. Ак-Мечетская, 3, Симферополь",
+        "latitude": 44.945,
+        "longitude": 34.085,
+    },
+    {
+        "name": "Площадка Каменка",
+        "address": "ул. Каменская, 22, Симферополь",
+        "latitude": 44.935,
+        "longitude": 34.095,
+    },
+    {
+        "name": "Площадка Залесская",
+        "address": "ул. Залесская, 7, Симферополь",
+        "latitude": 44.960,
+        "longitude": 34.115,
+    },
 ]
 
 STATUSES = ["clean", "clean", "clean", "clean", "overflow", "contamination", "clean", "overflow"]
@@ -56,30 +98,39 @@ def seed_db(db: Session) -> None:
         db.flush()
 
         for j in range(random.randint(1, 3)):
-            db.add(Camera(
-                site_id=site.id,
-                name=f"Камера {j + 1}",
-                rtsp_url=f"rtsp://admin:pass@192.168.{i}.{j + 10}:554/stream",
-                is_active=True,
-                last_checked=dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=random.randint(5, 120)),
-            ))
+            db.add(
+                Camera(
+                    site_id=site.id,
+                    name=f"Камера {j + 1}",
+                    rtsp_url=f"rtsp://admin:pass@192.168.{i}.{j + 10}:554/stream",
+                    is_active=True,
+                    last_checked=dt.datetime.now(dt.UTC)
+                    - dt.timedelta(minutes=random.randint(5, 120)),
+                )
+            )
 
         for _ in range(random.randint(0, 8)):
             days_ago = random.randint(0, 30)
             status = random.choice(["new", "accepted", "resolved"])
-            db.add(Alert(
-                site_id=site.id,
-                level=random.choice(["overflow", "contamination"]),
-                status=status,
-                created_at=dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=days_ago, hours=random.randint(0, 23)),
-                resolved_at=(
-                    dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=max(days_ago - 1, 0))
-                    if status == "resolved" else None
-                ),
-            ))
+            db.add(
+                Alert(
+                    site_id=site.id,
+                    level=random.choice(["overflow", "contamination"]),
+                    status=status,
+                    created_at=dt.datetime.now(dt.UTC)
+                    - dt.timedelta(days=days_ago, hours=random.randint(0, 23)),
+                    resolved_at=(
+                        dt.datetime.now(dt.UTC) - dt.timedelta(days=max(days_ago - 1, 0))
+                        if status == "resolved"
+                        else None
+                    ),
+                )
+            )
 
     db.commit()
-    print(f"Seeded: org '{demo_org.name}' (join_code={demo_org.join_code}), admin + demo user, {len(SITES_DATA)} sites.")
+    print(
+        f"Seeded: org '{demo_org.name}' (join_code={demo_org.join_code}), admin + demo user, {len(SITES_DATA)} sites."
+    )
 
 
 if __name__ == "__main__":

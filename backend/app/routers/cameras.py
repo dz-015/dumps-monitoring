@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.auth import get_current_user
 from app.db.database import get_db
 from app.db.models import Camera, Site, User
 from app.schemas import CameraCreate, CameraOut
-from app.auth import get_current_user
 
 router = APIRouter(prefix="/api/cameras", tags=["cameras"])
 
@@ -50,7 +50,9 @@ def list_cameras(db: Session = Depends(get_db), user: User = Depends(get_current
 
 
 @router.post("", response_model=CameraOut, status_code=201)
-def create_camera(data: CameraCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def create_camera(
+    data: CameraCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)
+):
     _get_site_in_org_or_404(data.site_id, db, user)
     cam = Camera(**data.model_dump())
     db.add(cam)
@@ -60,7 +62,9 @@ def create_camera(data: CameraCreate, db: Session = Depends(get_db), user: User 
 
 
 @router.delete("/{camera_id}", status_code=204)
-def delete_camera(camera_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def delete_camera(
+    camera_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
+):
     cam = _get_camera_or_404(camera_id, db, user)
     db.delete(cam)
     db.commit()

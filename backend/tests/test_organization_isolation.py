@@ -5,6 +5,7 @@ This is the single most important security-relevant invariant in the backend —
 every list endpoint must filter by current_user.organization_id, every detail
 endpoint must 404 for out-of-org ids.
 """
+
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
