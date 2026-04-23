@@ -1,0 +1,56 @@
+version: "3.9"
+
+services:
+  backend:
+    build: ./backend
+    container_name: nekobak-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data/db:/app/data
+      - ./data/uploads:/app/uploads
+    environment:
+      - DATABASE_URL=sqlite:///./data/nekobak.db
+      - SECRET_KEY=nekobak-super-secret-change-me
+      - UPLOAD_DIR=/app/uploads
+
+  frontend:
+    build: ./frontend
+    container_name: nekobak-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+  # worker:
+  #   build: ./backend
+  #   container_name: nekobak-worker
+  #   restart: unless-stopped
+  #   command: ["python", "-m", "app.worker"]
+  #   volumes:
+  #     - ./data/db:/app/data
+  #     - ./data/uploads:/app/uploads
+  #   environment:
+  #     - DATABASE_URL=sqlite:///./data/nekobak.db
+  #   depends_on:
+  #     - backend
+
+  # max_bot:
+  #   build: ./max_bot
+  #   container_name: nekobak-max-bot
+  #   restart: unless-stopped
+  #   environment:
+  #     - MAX_BOT_TOKEN=changeme
+  #     - API_URL=http://backend:8000
+  #   depends_on:
+  #     - backend
+
+  # osm_tiles:
+  #   image: overv/openstreetmap-tile-server:latest
+  #   container_name: nekobak-osm
+  #   volumes:
+  #     - ./data/osm:/data/database
+  #   ports:
+  #     - "8080:80"

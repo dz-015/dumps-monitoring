@@ -1,0 +1,78 @@
+const BASE = '/api';
+
+async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
+  const token = localStorage.getItem('token');
+  const headers: Record<string, string> = {
+    ...(opts.headers as Record<string, string> || {}),
+  };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (!(opts.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  const res = await fetch(`${BASE}${path}`, { ...opts, headers });
+  if (res.status === 401) {
+    localStorage.removeItem('token');
+    window.location.href = '/login';
+    throw new Error('Unauthorized');
+  }
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || 'Request failed');
+  }
+  if (res.status === 204) return undefined as T;
+  return res.json();
+}
+
+// Auth
+export const login = (email: string, password: string) =>
+  request<{ access_token: string }>('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  });
+
+export const register = (email: string, password: string, full_name: string) =>
+  request<any>('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ email, password, full_name }),
+  });
+
+export const getMe = () => request<any>('/auth/me');
+
+// Dashboard
+export const getDashboardStats = () => request<any>('/dashboard/stats');
+export const getProblemsWeek = () => request<any[]>('/dashboard/problems-week');
+export const getProblemsMonth = () => request<any[]>('/dashboard/problems-month');
+
+// Sites
+export const getSites = () => request<any[]>('/sites');
+export const getSite = (id: number) => request<any>(`/sites/${id}`);
+export const createSite = (data: any) =>
+  request<any>('/sites', { method: 'POST', body: JSON.stringify(data) });
+export const updateSite = (id: number, data: any) =>
+  request<any>(`/sites/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+export const deleteSite = (id: number) =>
+  request<void>(`/sites/${id}`, { method: 'DELETE' });
+export const getSiteSnapshots = (id: number, limit = 20) =>
+  request<any[]>(`/sites/${id}/snapshots?limit=${limit}`);
+export const getSiteAlerts = (id: number) =>
+  request<any[]>(`/sites/${id}/alerts`);
+
+// Cameras
+export const getCameras = () => request<any[]>('/cameras');
+export const createCamera = (data: any) =>
+  request<any>('/cameras', { method: 'POST', body: JSON.stringify(data) });
+export const deleteCamera = (id: number) =>
+  request<void>(`/cameras/${id}`, { method: 'DELETE' });
+
+// Alerts
+export const getAlerts = (params?: { level?: string; status?: string; page?: number; per_page?: number }) => {
+  const sp = new URLSearchParams();
+  if (params?.level) sp.set('level', params.level);
+  if (params?.status) sp.set('status', params.status);
+  if (params?.page) sp.set('page', String(params.page));
+  if (params?.per_page) sp.set('per_page', String(params.per_page));
+  return request<{ items: any[]; total: number }>(`/alerts?${sp}`);
+};
+export const updateAlert = (id: number, status: string) =>
+  request<any>(`/alerts/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });

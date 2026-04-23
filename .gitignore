@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+venv/
+.venv/
+env/
+
+# Node
+node_modules/
+dist/
+build/
+.vite/
+*.log
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data / models (DVC-managed later)
+ml/data/raw/
+ml/data/processed/
+ml/data/public/
+ml/data/splits/
+*.pt
+*.onnx
+*.pth
+
+# Runtime artefacts
+backend/uploads/
+backend/nekobak.db
+backend/*.db-journal
+data/
+
+# Figma exports (large binaries — keep locally, don't bloat repo)
+# Uncomment if exports get huge; for now, keep them tracked
+# figma_exports/
