@@ -107,6 +107,8 @@ class Alert(Base):
     snapshot_id: Mapped[int | None] = mapped_column(ForeignKey("snapshots.id"), nullable=True)
     level: Mapped[str] = mapped_column(String(50))  # overflow | contamination
     status: Mapped[str] = mapped_column(String(50), default="new")  # new | accepted | resolved
+    # Set only when status=resolved. Feeds operator-feedback loop (decisions log, 2026-04-23).
+    resolution_reason: Mapped[str | None] = mapped_column(String(50), nullable=True)
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, server_default=func.now())
     resolved_at: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
 

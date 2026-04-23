@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.auth import get_current_user
 from app.db.database import get_db
 from app.db.models import Alert, Site, User
-from app.schemas import AlertOut, AlertStatusUpdate
+from app.schemas import ALLOWED_RESOLUTION_REASONS, AlertOut, AlertStatusUpdate
 
 router = APIRouter(prefix="/api/alerts", tags=["alerts"])
 
@@ -59,9 +59,26 @@ def update_alert_status(
     alert = _scoped(db.query(Alert).filter(Alert.id == alert_id), user).first()
     if not alert:
         raise HTTPException(404, "Alert not found")
-    alert.status = data.status
+
     if data.status == "resolved":
+        if not data.resolution_reason:
+            raise HTTPException(400, "resolution_reason is required when resolving an alert")
+        if data.resolution_reason not in ALLOWED_RESOLUTION_REASONS:
+            raise HTTPException(
+                400,
+                f"resolution_reason must be one of {sorted(ALLOWED_RESOLUTION_REASONS)}",
+            )
+        alert.resolution_reason = data.resolution_reason
         alert.resolved_at = dt.datetime.now(dt.UTC)
+    else:
+        if data.resolution_reason is not None:
+            raise HTTPException(
+                400, "resolution_reason is only valid when status=resolved"
+            )
+        alert.resolution_reason = None
+        alert.resolved_at = None
+
+    alert.status = data.status
     db.commit()
     db.refresh(alert)
     site = db.query(Site).filter(Site.id == alert.site_id).first()

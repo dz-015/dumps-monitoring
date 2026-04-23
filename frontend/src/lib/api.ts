@@ -97,5 +97,13 @@ export const getAlerts = (params: AlertsQuery = {}) => {
   return request<AlertsPage>(`/alerts?${sp}`);
 };
 
-export const updateAlert = (id: number, status: string) =>
-  request<Alert>(`/alerts/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+export interface AlertUpdatePayload {
+  status: string;
+  resolution_reason?: string | null;
+}
+
+export const updateAlert = (id: number, payload: AlertUpdatePayload) =>
+  request<Alert>(`/alerts/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });

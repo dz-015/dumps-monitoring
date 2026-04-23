@@ -102,6 +102,7 @@ class AlertOut(BaseModel):
     snapshot_id: int | None
     level: str
     status: str
+    resolution_reason: str | None = None
     created_at: dt.datetime
     resolved_at: dt.datetime | None
     site_name: str = ""
@@ -110,8 +111,14 @@ class AlertOut(BaseModel):
         from_attributes = True
 
 
+ALLOWED_RESOLUTION_REASONS = {"confirmed_and_cleared", "false_alarm", "resolved_externally"}
+
+
 class AlertStatusUpdate(BaseModel):
     status: str  # new | accepted | resolved
+    # Required when status=resolved, forbidden otherwise. Validated in the router
+    # rather than the schema so we can return a specific 400 message.
+    resolution_reason: str | None = None
 
 
 # ── Detections ────────────────────────────────────────

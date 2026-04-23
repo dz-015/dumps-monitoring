@@ -1,6 +1,10 @@
 export type SiteStatus = 'clean' | 'overflow' | 'contamination';
 export type AlertLevel = 'overflow' | 'contamination';
 export type AlertStatus = 'new' | 'accepted' | 'resolved';
+export type ResolutionReason =
+  | 'confirmed_and_cleared'
+  | 'false_alarm'
+  | 'resolved_externally';
 
 export interface User {
   id: number;
@@ -61,6 +65,7 @@ export interface Alert {
   snapshot_id: number | null;
   level: AlertLevel;
   status: AlertStatus;
+  resolution_reason: ResolutionReason | null;
   created_at: string;
   resolved_at: string | null;
 }

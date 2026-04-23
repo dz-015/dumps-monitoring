@@ -1,17 +1,26 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getAlerts, updateAlert } from '../lib/api';
+import type { Alert, ResolutionReason } from '../lib/types';
 import StatusBadge from '../components/StatusBadge';
 
-type Alert = {
-  id: number;
-  site_id: number;
-  site_name: string;
-  level: string;
-  status: string;
-  created_at: string;
-  resolved_at: string | null;
-};
+const RESOLUTION_OPTIONS: { value: ResolutionReason; label: string; hint: string }[] = [
+  {
+    value: 'confirmed_and_cleared',
+    label: 'Подтверждено и устранено',
+    hint: 'Проблема была, бригада выехала и убрала',
+  },
+  {
+    value: 'false_alarm',
+    label: 'Ложная тревога',
+    hint: 'В реальности проблемы не было — модель ошиблась',
+  },
+  {
+    value: 'resolved_externally',
+    label: 'Разрешилось само',
+    hint: 'Мусоровоз приехал / ветер сдул / устранено без нас',
+  },
+];
 
 const PER_PAGE = 10;
 
@@ -22,6 +31,7 @@ export default function AlertsPage() {
   const [levelFilter, setLevelFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [expanded, setExpanded] = useState<number | null>(null);
+  const [resolvingId, setResolvingId] = useState<number | null>(null);
 
   const load = useCallback(() => {
     getAlerts({
@@ -41,8 +51,14 @@ export default function AlertsPage() {
 
   const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
 
-  const handleStatusChange = async (id: number, newStatus: string) => {
-    await updateAlert(id, newStatus);
+  const handleAccept = async (id: number) => {
+    await updateAlert(id, { status: 'accepted' });
+    load();
+  };
+
+  const handleResolve = async (id: number, reason: ResolutionReason) => {
+    await updateAlert(id, { status: 'resolved', resolution_reason: reason });
+    setResolvingId(null);
     load();
   };
 
@@ -130,21 +146,54 @@ export default function AlertsPage() {
                             <div>
                               <div className="text-xs text-gray-500 mb-0.5">Решён</div>
                               <div>{new Date(a.resolved_at).toLocaleString('ru-RU')}</div>
+                              {a.resolution_reason && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                  {RESOLUTION_OPTIONS.find((o) => o.value === a.resolution_reason)
+                                    ?.label ?? a.resolution_reason}
+                                </div>
+                              )}
                             </div>
                           )}
-                          <div className="ml-auto flex gap-2">
+                          <div className="ml-auto flex flex-col gap-2 items-end">
                             {a.status === 'new' && (
-                              <ActionButton onClick={() => handleStatusChange(a.id, 'accepted')}>
+                              <ActionButton onClick={() => handleAccept(a.id)}>
                                 Принять
                               </ActionButton>
                             )}
-                            {a.status === 'accepted' && (
+                            {a.status === 'accepted' && resolvingId !== a.id && (
                               <ActionButton
-                                onClick={() => handleStatusChange(a.id, 'resolved')}
+                                onClick={() => setResolvingId(a.id)}
                                 tone="green"
                               >
                                 Отметить решённым
                               </ActionButton>
+                            )}
+                            {a.status === 'accepted' && resolvingId === a.id && (
+                              <div className="flex flex-col gap-1.5 text-xs">
+                                <div className="text-gray-500">Причина решения:</div>
+                                {RESOLUTION_OPTIONS.map((o) => (
+                                  <button
+                                    key={o.value}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleResolve(a.id, o.value);
+                                    }}
+                                    className="text-left bg-white border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50"
+                                  >
+                                    <div className="font-medium text-gray-900">{o.label}</div>
+                                    <div className="text-gray-500">{o.hint}</div>
+                                  </button>
+                                ))}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setResolvingId(null);
+                                  }}
+                                  className="text-gray-500 hover:text-gray-700 self-start mt-1"
+                                >
+                                  Отмена
+                                </button>
+                              </div>
                             )}
                           </div>
                         </div>
