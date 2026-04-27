@@ -45,18 +45,35 @@ describe('LoginPage', () => {
     localStorage.clear();
   });
 
-  it('submits email+password and navigates on success', async () => {
+  it('submits email+password and navigates on success (remember=false by default)', async () => {
     loginMock.mockResolvedValue({ access_token: 'tok' });
-    getMeMock.mockResolvedValue({ id: 1, email: 'u@x.test', full_name: 'U' });
-    const user = userEvent.setup();
+    const user = { id: 1, email: 'u@x.test', full_name: 'U' };
+    getMeMock.mockResolvedValue(user);
+    const ue = userEvent.setup();
     renderLogin();
 
-    await user.type(screen.getByLabelText('Email'), 'u@x.test');
-    await user.type(screen.getByLabelText('Пароль'), 'pw12345');
-    await user.click(screen.getByRole('button', { name: 'Войти' }));
+    await ue.type(screen.getByLabelText('Email'), 'u@x.test');
+    await ue.type(screen.getByLabelText('Пароль'), 'pw12345');
+    await ue.click(screen.getByRole('button', { name: 'Войти' }));
 
     expect(loginMock).toHaveBeenCalledWith('u@x.test', 'pw12345');
+    expect(setAuthMock).toHaveBeenCalledWith('tok', user, false);
     expect(navigateMock).toHaveBeenCalledWith('/');
+  });
+
+  it('passes remember=true to setAuth when "Запомнить меня" is checked', async () => {
+    loginMock.mockResolvedValue({ access_token: 'tok' });
+    const user = { id: 1, email: 'u@x.test', full_name: 'U' };
+    getMeMock.mockResolvedValue(user);
+    const ue = userEvent.setup();
+    renderLogin();
+
+    await ue.type(screen.getByLabelText('Email'), 'u@x.test');
+    await ue.type(screen.getByLabelText('Пароль'), 'pw12345');
+    await ue.click(screen.getByLabelText('Запомнить меня'));
+    await ue.click(screen.getByRole('button', { name: 'Войти' }));
+
+    expect(setAuthMock).toHaveBeenCalledWith('tok', user, true);
   });
 
   it('surfaces API errors in the form', async () => {

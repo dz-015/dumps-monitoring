@@ -8,6 +8,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -19,9 +20,8 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const { access_token } = await login(email, password);
-      localStorage.setItem('token', access_token);
       const user = await getMe();
-      setAuth(access_token, user);
+      setAuth(access_token, user, remember);
       navigate('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Произошла ошибка');
@@ -80,7 +80,13 @@ export default function LoginPage() {
 
           <div className="flex items-center pt-1">
             <label className="flex items-center gap-2 text-sm text-gray-600">
-              <input type="checkbox" className="rounded" /> Запомнить меня
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
+                className="rounded"
+              />
+              Запомнить меня
             </label>
           </div>
 

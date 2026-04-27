@@ -11,11 +11,12 @@ import type {
   Snapshot,
   User,
 } from './types';
+import { clearToken, getToken } from './tokenStorage';
 
 const BASE = '/api';
 
 async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
-  const token = localStorage.getItem('token');
+  const token = getToken();
   const headers: Record<string, string> = {
     ...((opts.headers as Record<string, string>) || {}),
   };
@@ -26,7 +27,7 @@ async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
 
   const res = await fetch(`${BASE}${path}`, { ...opts, headers });
   if (res.status === 401) {
-    localStorage.removeItem('token');
+    clearToken();
     window.location.href = '/login';
     throw new Error('Unauthorized');
   }
