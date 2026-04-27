@@ -1,12 +1,20 @@
 import { Link, useLocation, Outlet, Navigate } from 'react-router-dom';
-import { LayoutDashboard, Map, Camera, Bell, LogOut } from 'lucide-react';
+import { LayoutDashboard, Map, Bell, LogOut } from 'lucide-react';
 import { useAuthStore } from '../lib/store';
 import logo from '../assets/logo.svg';
+import camerasIcon from '../assets/sidebar-cameras.svg';
 
-const NAV = [
+type NavItem = {
+  to: string;
+  label: string;
+  Icon?: React.ComponentType<{ size?: number; strokeWidth?: number }>;
+  iconSrc?: string;
+};
+
+const NAV: NavItem[] = [
   { to: '/', label: 'Панель управления', Icon: LayoutDashboard },
   { to: '/map', label: 'Карта', Icon: Map },
-  { to: '/cameras', label: 'Камеры', Icon: Camera },
+  { to: '/cameras', label: 'Камеры', iconSrc: camerasIcon },
   { to: '/alerts', label: 'Оповещения', Icon: Bell },
 ];
 
@@ -26,7 +34,7 @@ export default function Layout() {
           </div>
         </div>
         <nav className="flex-1 p-2">
-          {NAV.map(({ to, label, Icon }) => {
+          {NAV.map(({ to, label, Icon, iconSrc }) => {
             const active =
               to === '/' ? location.pathname === '/' : location.pathname.startsWith(to);
             return (
@@ -39,7 +47,11 @@ export default function Layout() {
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`}
               >
-                <Icon size={18} strokeWidth={active ? 2.2 : 1.8} />
+                {iconSrc ? (
+                  <img src={iconSrc} alt="" className="w-[18px] h-[18px]" />
+                ) : (
+                  Icon && <Icon size={18} strokeWidth={active ? 2.2 : 1.8} />
+                )}
                 {label}
               </Link>
             );
