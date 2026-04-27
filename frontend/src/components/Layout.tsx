@@ -1,6 +1,7 @@
 import { Link, useLocation, Outlet, Navigate } from 'react-router-dom';
 import { LayoutDashboard, Map, Camera, Bell, LogOut } from 'lucide-react';
 import { useAuthStore } from '../lib/store';
+import logo from '../assets/logo.svg';
 
 const NAV = [
   { to: '/', label: 'Панель управления', Icon: LayoutDashboard },
@@ -20,9 +21,7 @@ export default function Layout() {
       <aside className="w-56 bg-white border-r border-gray-200 flex flex-col">
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gray-900 text-white flex items-center justify-center font-bold text-sm">
-              N
-            </div>
+            <img src={logo} alt="НЭКОБАК" className="w-8 h-8" />
             <span className="font-bold text-lg tracking-tight">НЭКОБАК</span>
           </div>
         </div>

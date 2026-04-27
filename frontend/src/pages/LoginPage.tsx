@@ -1,8 +1,9 @@
 import { useId, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Trash2 } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { login, getMe } from '../lib/api';
 import { useAuthStore } from '../lib/store';
+import logo from '../assets/logo.svg';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -35,9 +36,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="bg-white rounded-2xl shadow-sm p-8 w-full max-w-sm border border-gray-100">
         <div className="flex flex-col items-center text-center mb-6">
-          <div className="inline-flex w-12 h-12 rounded-xl bg-gray-900 text-white items-center justify-center mb-3">
-            <Trash2 size={22} />
-          </div>
+          <img src={logo} alt="НЭКОБАК" className="w-12 h-12 mb-3" />
           <h1 className="text-xl font-bold tracking-tight">НЭКОБАК</h1>
           <h2 className="text-2xl font-semibold text-gray-900 mt-4">Добро пожаловать</h2>
         </div>
