@@ -1,16 +1,34 @@
 import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
 import { Link } from 'react-router-dom';
 import { getSites } from '../lib/api';
 import type { Site } from '../lib/types';
 import StatusBadge from '../components/StatusBadge';
 import 'leaflet/dist/leaflet.css';
+import pinGreen from '../assets/map-pins/green.svg';
+import pinYellow from '../assets/map-pins/yellow.svg';
+import pinRed from '../assets/map-pins/red.svg';
 
-const STATUS_COLOR: Record<string, string> = {
-  clean: '#22c55e',
-  overflow: '#eab308',
-  contamination: '#ef4444',
+const STATUS_PIN: Record<string, string> = {
+  clean: pinGreen,
+  overflow: pinYellow,
+  contamination: pinRed,
 };
+
+const ICON_CACHE: Record<string, L.Icon> = {};
+function pinIcon(status: string): L.Icon {
+  const url = STATUS_PIN[status] ?? pinGreen;
+  if (!ICON_CACHE[url]) {
+    ICON_CACHE[url] = L.icon({
+      iconUrl: url,
+      iconSize: [54, 61],
+      iconAnchor: [27, 53],
+      popupAnchor: [0, -50],
+    });
+  }
+  return ICON_CACHE[url];
+}
 
 export default function MapPage() {
   const [sites, setSites] = useState<Site[]>([]);
@@ -44,33 +62,27 @@ export default function MapPage() {
             .map((site) => {
               const derived = site.active_status ?? site.status;
               return (
-              <CircleMarker
-                key={site.id}
-                center={[site.latitude, site.longitude]}
-                radius={10}
-                pathOptions={{
-                  color: STATUS_COLOR[derived] || '#94a3b8',
-                  fillColor: STATUS_COLOR[derived] || '#94a3b8',
-                  fillOpacity: 0.7,
-                  weight: 2,
-                }}
-              >
-                <Popup>
-                  <div className="text-sm min-w-[180px]">
-                    <div className="font-semibold mb-1">{site.name}</div>
-                    <div className="text-gray-500 text-xs mb-2">{site.address}</div>
-                    <StatusBadge value={derived} />
-                    <div className="mt-2">
-                      <Link
-                        to={`/cameras/${site.id}`}
-                        className="text-blue-500 text-xs hover:underline"
-                      >
-                        Подробнее →
-                      </Link>
+                <Marker
+                  key={site.id}
+                  position={[site.latitude, site.longitude]}
+                  icon={pinIcon(derived)}
+                >
+                  <Popup>
+                    <div className="text-sm min-w-[180px]">
+                      <div className="font-semibold mb-1">{site.name}</div>
+                      <div className="text-gray-500 text-xs mb-2">{site.address}</div>
+                      <StatusBadge value={derived} />
+                      <div className="mt-2">
+                        <Link
+                          to={`/cameras/${site.id}`}
+                          className="text-blue-500 text-xs hover:underline"
+                        >
+                          Подробнее →
+                        </Link>
+                      </div>
                     </div>
-                  </div>
-                </Popup>
-              </CircleMarker>
+                  </Popup>
+                </Marker>
               );
             })}
         </MapContainer>
