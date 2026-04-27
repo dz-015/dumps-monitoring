@@ -111,7 +111,7 @@ export default function DashboardPage() {
           <ResponsiveContainer width="100%" height={160}>
             <AreaChart data={weekData}>
               <XAxis dataKey="day" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
               <Tooltip />
               <Area
                 type="monotone"
@@ -129,7 +129,7 @@ export default function DashboardPage() {
         <ResponsiveContainer width="100%" height={200}>
           <AreaChart data={monthData}>
             <XAxis dataKey="day" tick={{ fontSize: 10 }} />
-            <YAxis tick={{ fontSize: 11 }} />
+            <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
             <Tooltip />
             <Area type="monotone" dataKey="count" stroke="#3b82f6" fill="#dbeafe" strokeWidth={2} />
           </AreaChart>
