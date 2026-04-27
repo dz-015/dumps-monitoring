@@ -46,7 +46,7 @@ def register(data: UserCreate, db: Session = Depends(get_db)):
 def login(data: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == data.email).first()
     if not user or not verify_password(data.password, user.hashed_password):
-        raise HTTPException(401, "Invalid credentials")
+        raise HTTPException(401, "Неверный email или пароль")
     token = create_access_token({"sub": str(user.id)})
     return Token(access_token=token)
 

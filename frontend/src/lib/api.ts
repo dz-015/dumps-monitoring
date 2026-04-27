@@ -15,7 +15,10 @@ import { clearToken, getToken } from './tokenStorage';
 
 const BASE = '/api';
 
-async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
+type RequestOpts = RequestInit & { skipAuthRedirect?: boolean };
+
+async function request<T>(path: string, opts: RequestOpts = {}): Promise<T> {
+  const { skipAuthRedirect, ...fetchOpts } = opts;
   const token = getToken();
   const headers: Record<string, string> = {
     ...((opts.headers as Record<string, string>) || {}),
@@ -25,8 +28,8 @@ async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
     headers['Content-Type'] = 'application/json';
   }
 
-  const res = await fetch(`${BASE}${path}`, { ...opts, headers });
-  if (res.status === 401) {
+  const res = await fetch(`${BASE}${path}`, { ...fetchOpts, headers });
+  if (res.status === 401 && !skipAuthRedirect) {
     clearToken();
     window.location.href = '/login';
     throw new Error('Unauthorized');
@@ -44,6 +47,7 @@ export const login = (email: string, password: string) =>
   request<LoginResponse>('/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email, password }),
+    skipAuthRedirect: true,
   });
 
 export type RegisterPayload =
