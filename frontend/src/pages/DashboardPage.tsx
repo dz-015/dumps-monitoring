@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { MapPin, Camera as CameraIcon, Bell, CheckCircle2, ArrowUpRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Bell, CheckCircle2, ArrowUpRight } from 'lucide-react';
 import {
   PieChart,
   Pie,
@@ -13,6 +14,8 @@ import {
 } from 'recharts';
 import { getDashboardStats, getProblemsWeek, getProblemsMonth } from '../lib/api';
 import type { DashboardStats, ProblemsPoint } from '../lib/types';
+import sitesIcon from '../assets/kpi-sites.svg';
+import camerasIcon from '../assets/kpi-cameras.svg';
 
 const PIE_COLORS: Record<string, string> = {
   clean: '#22c55e',
@@ -50,25 +53,27 @@ export default function DashboardPage() {
       <p className="text-sm text-gray-500 mb-6">Обзор состояния контейнерных площадок</p>
 
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <KpiCard label="Всего площадок" value={stats.total_sites} Icon={MapPin} tint="slate" />
+        <KpiCard
+          label="Всего площадок"
+          value={stats.total_sites}
+          icon={<img src={sitesIcon} alt="" className="w-8 h-8" />}
+        />
         <KpiCard
           label="Активные камеры"
           value={stats.active_cameras}
-          Icon={CameraIcon}
-          tint="green"
+          icon={<img src={camerasIcon} alt="" className="w-8 h-8" />}
+        />
+        <KpiCard
+          label="Чистых площадок"
+          value={`${stats.clean_percent}%`}
+          icon={<TintIcon Icon={CheckCircle2} tint="green" />}
         />
         <KpiCard
           label="Оповещения"
           value={stats.open_alerts}
           sub="Открыть"
-          Icon={Bell}
-          tint="amber"
-        />
-        <KpiCard
-          label="Чистых площадок"
-          value={`${stats.clean_percent}%`}
-          Icon={CheckCircle2}
-          tint="green"
+          icon={<TintIcon Icon={Bell} tint="amber" />}
+          to="/alerts"
         />
       </div>
 
@@ -140,38 +145,61 @@ const TINTS: Record<string, { bg: string; fg: string }> = {
   amber: { bg: 'bg-amber-50', fg: 'text-amber-600' },
 };
 
+function TintIcon({
+  Icon,
+  tint,
+}: {
+  Icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
+  tint: keyof typeof TINTS;
+}) {
+  const t = TINTS[tint];
+  return (
+    <span className={`p-2 rounded-full ${t.bg} ${t.fg}`}>
+      <Icon size={18} strokeWidth={2} />
+    </span>
+  );
+}
+
 function KpiCard({
   label,
   value,
   sub,
-  Icon,
-  tint = 'slate',
+  icon,
+  to,
 }: {
   label: string;
   value: string | number;
   sub?: string;
-  Icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
-  tint?: keyof typeof TINTS;
+  icon: React.ReactNode;
+  to?: string;
 }) {
-  const t = TINTS[tint];
-  return (
-    <div className="bg-white rounded-xl p-4 border border-gray-200">
-      <div className="flex justify-between items-start">
-        <div>
-          <div className="text-xs text-gray-500 mb-1">{label}</div>
-          <div className="text-2xl font-bold text-gray-900">{value}</div>
-          {sub && (
-            <div className="text-xs text-sky-500 mt-1 inline-flex items-center gap-0.5 cursor-pointer">
-              {sub} <ArrowUpRight size={12} />
-            </div>
-          )}
-        </div>
-        <span className={`p-2 rounded-full ${t.bg} ${t.fg}`}>
-          <Icon size={18} strokeWidth={2} />
-        </span>
+  const body = (
+    <div className="flex justify-between items-start">
+      <div>
+        <div className="text-xs text-gray-500 mb-1">{label}</div>
+        <div className="text-2xl font-bold text-gray-900">{value}</div>
+      </div>
+      <div className="flex flex-col items-end gap-2">
+        {icon}
+        {sub && (
+          <span className="text-xs text-sky-500 inline-flex items-center gap-0.5">
+            {sub} <ArrowUpRight size={12} />
+          </span>
+        )}
       </div>
     </div>
   );
+  if (to) {
+    return (
+      <Link
+        to={to}
+        className="bg-white rounded-xl p-4 border border-gray-200 transition-colors hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-sky-400"
+      >
+        {body}
+      </Link>
+    );
+  }
+  return <div className="bg-white rounded-xl p-4 border border-gray-200">{body}</div>;
 }
 
 function Card({
