@@ -28,11 +28,14 @@ export default function MapPage() {
         className="bg-white rounded-xl border border-gray-200 overflow-hidden"
         style={{ height: 'calc(100vh - 180px)' }}
       >
-        <MapContainer center={[44.952, 34.1]} zoom={13} className="w-full h-full" scrollWheelZoom>
-          <TileLayer
-            attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
+        <MapContainer
+          center={[44.952, 34.1]}
+          zoom={13}
+          className="w-full h-full"
+          scrollWheelZoom
+          attributionControl={false}
+        >
+          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           {sites
             .filter(
               (s): s is Site & { latitude: number; longitude: number } =>
