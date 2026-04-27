@@ -4,16 +4,13 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import LoginPage from './LoginPage';
 
-// Mock API and router navigate — we only want to verify the form wiring.
 const loginMock = vi.fn();
-const registerMock = vi.fn();
 const getMeMock = vi.fn();
 const navigateMock = vi.fn();
 const setAuthMock = vi.fn();
 
 vi.mock('../lib/api', () => ({
   login: (...args: unknown[]) => loginMock(...args),
-  register: (...args: unknown[]) => registerMock(...args),
   getMe: () => getMeMock(),
 }));
 
@@ -38,7 +35,6 @@ function renderLogin() {
 describe('LoginPage', () => {
   beforeEach(() => {
     loginMock.mockReset();
-    registerMock.mockReset();
     getMeMock.mockReset();
     navigateMock.mockReset();
     setAuthMock.mockReset();
@@ -49,7 +45,7 @@ describe('LoginPage', () => {
     localStorage.clear();
   });
 
-  it('defaults to login mode and submits email+password only', async () => {
+  it('submits email+password and navigates on success', async () => {
     loginMock.mockResolvedValue({ access_token: 'tok' });
     getMeMock.mockResolvedValue({ id: 1, email: 'u@x.test', full_name: 'U' });
     const user = userEvent.setup();
@@ -60,53 +56,7 @@ describe('LoginPage', () => {
     await user.click(screen.getByRole('button', { name: 'Войти' }));
 
     expect(loginMock).toHaveBeenCalledWith('u@x.test', 'pw12345');
-    expect(registerMock).not.toHaveBeenCalled();
-  });
-
-  it('switches to register mode and sends organization_name when "create org" is chosen', async () => {
-    registerMock.mockResolvedValue({ id: 1, email: 'a@x.test' });
-    loginMock.mockResolvedValue({ access_token: 'tok' });
-    getMeMock.mockResolvedValue({ id: 1, email: 'a@x.test', full_name: 'A' });
-    const user = userEvent.setup();
-    renderLogin();
-
-    await user.click(screen.getByRole('button', { name: 'Зарегистрироваться' }));
-    await user.type(screen.getByLabelText('Имя'), 'Anna');
-    await user.type(screen.getByLabelText('Email'), 'a@x.test');
-    await user.type(screen.getByLabelText('Пароль'), 'pw12345678');
-    // "Создать организацию" is the default choice after switching to register.
-    await user.type(screen.getByLabelText('Название организации'), 'Acme');
-    await user.click(screen.getByRole('button', { name: 'Зарегистрироваться' }));
-
-    expect(registerMock).toHaveBeenCalledWith({
-      email: 'a@x.test',
-      password: 'pw12345678',
-      full_name: 'Anna',
-      organization_name: 'Acme',
-    });
-  });
-
-  it('sends join_code instead when "join by code" is chosen', async () => {
-    registerMock.mockResolvedValue({ id: 2, email: 'j@x.test' });
-    loginMock.mockResolvedValue({ access_token: 'tok' });
-    getMeMock.mockResolvedValue({ id: 2, email: 'j@x.test', full_name: 'J' });
-    const user = userEvent.setup();
-    renderLogin();
-
-    await user.click(screen.getByRole('button', { name: 'Зарегистрироваться' }));
-    await user.type(screen.getByLabelText('Имя'), 'Joiner');
-    await user.type(screen.getByLabelText('Email'), 'j@x.test');
-    await user.type(screen.getByLabelText('Пароль'), 'pw12345678');
-    await user.click(screen.getByRole('button', { name: 'По коду приглашения' }));
-    await user.type(screen.getByLabelText('Код приглашения'), 'abc123XYZ');
-    await user.click(screen.getByRole('button', { name: 'Зарегистрироваться' }));
-
-    expect(registerMock).toHaveBeenCalledWith({
-      email: 'j@x.test',
-      password: 'pw12345678',
-      full_name: 'Joiner',
-      join_code: 'abc123XYZ',
-    });
+    expect(navigateMock).toHaveBeenCalledWith('/');
   });
 
   it('surfaces API errors in the form', async () => {
@@ -119,5 +69,40 @@ describe('LoginPage', () => {
     await user.click(screen.getByRole('button', { name: 'Войти' }));
 
     expect(await screen.findByText('Invalid credentials')).toBeInTheDocument();
+  });
+
+  it('keeps email but clears password after a failed login', async () => {
+    loginMock.mockRejectedValue(new Error('Invalid credentials'));
+    const user = userEvent.setup();
+    renderLogin();
+
+    const emailInput = screen.getByLabelText('Email') as HTMLInputElement;
+    const passwordInput = screen.getByLabelText('Пароль') as HTMLInputElement;
+
+    await user.type(emailInput, 'u@x.test');
+    await user.type(passwordInput, 'wrong');
+    await user.click(screen.getByRole('button', { name: 'Войти' }));
+
+    await screen.findByText('Invalid credentials');
+
+    expect(emailInput.value).toBe('u@x.test');
+    expect(passwordInput.value).toBe('');
+  });
+
+  it('toggles password visibility when the eye button is clicked', async () => {
+    const user = userEvent.setup();
+    renderLogin();
+
+    const passwordInput = screen.getByLabelText('Пароль') as HTMLInputElement;
+    expect(passwordInput.type).toBe('password');
+
+    const showButton = screen.getByRole('button', { name: 'Показать пароль' });
+    await user.click(showButton);
+
+    expect(passwordInput.type).toBe('text');
+    expect(screen.getByRole('button', { name: 'Скрыть пароль' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Скрыть пароль' }));
+    expect(passwordInput.type).toBe('password');
   });
 });
