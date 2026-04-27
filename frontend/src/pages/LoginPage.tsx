@@ -20,7 +20,7 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const { access_token } = await login(email, password);
+      const { access_token } = await login(email.trim(), password);
       const user = await getMe();
       setAuth(access_token, user, remember);
       navigate('/');
