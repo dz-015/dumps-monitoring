@@ -90,9 +90,9 @@ export default function AlertsPage() {
           }}
           options={[
             { value: '', label: 'Все статусы' },
-            { value: 'new', label: 'Новый' },
-            { value: 'accepted', label: 'Принят' },
-            { value: 'resolved', label: 'Решён' },
+            { value: 'new', label: '🔵 Новый' },
+            { value: 'accepted', label: '🟡 Принят' },
+            { value: 'resolved', label: '🟢 Решён' },
           ]}
         />
       </div>
@@ -268,17 +268,23 @@ function FilterSelect({
   options: { value: string; label: string }[];
 }) {
   return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-sky-400"
-    >
-      {options.map((o) => (
-        <option key={o.value} value={o.value}>
-          {o.label}
-        </option>
-      ))}
-    </select>
+    <div className="relative">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="appearance-none border border-gray-200 rounded-xl pl-3 pr-9 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-sky-400"
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+      <ChevronDown
+        size={16}
+        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+      />
+    </div>
   );
 }
 
