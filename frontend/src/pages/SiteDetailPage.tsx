@@ -1,6 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Download, Pencil, X } from 'lucide-react';
+import {
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  MinusCircle,
+  Pencil,
+  X,
+  XCircle,
+} from 'lucide-react';
 import {
   XAxis,
   YAxis,
@@ -31,6 +40,36 @@ const RESOLUTION_LABELS: Record<string, string> = {
   false_alarm: 'Ложная тревога',
   resolved_externally: 'Разрешилось само',
 };
+
+function ResolutionCell({ reason }: { reason: string | null }) {
+  if (!reason) return <span className="text-gray-400">—</span>;
+  const label = RESOLUTION_LABELS[reason] ?? reason;
+  if (reason === 'confirmed_and_cleared') {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-green-700">
+        <CheckCircle2 size={16} />
+        {label}
+      </span>
+    );
+  }
+  if (reason === 'false_alarm') {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-red-700">
+        <XCircle size={16} />
+        {label}
+      </span>
+    );
+  }
+  if (reason === 'resolved_externally') {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-gray-500">
+        <MinusCircle size={16} />
+        {label}
+      </span>
+    );
+  }
+  return <span className="text-gray-600">{label}</span>;
+}
 
 const ALERTS_PER_PAGE = 10;
 
@@ -168,7 +207,7 @@ export default function SiteDetailPage() {
               <th className="px-4 py-3 font-medium">Время</th>
               <th className="px-4 py-3 font-medium">Уровень</th>
               <th className="px-4 py-3 font-medium">Статус</th>
-              <th className="px-4 py-3 font-medium">Что сделали</th>
+              <th className="px-4 py-3 font-medium">Итог</th>
             </tr>
           </thead>
           <tbody>
@@ -189,10 +228,8 @@ export default function SiteDetailPage() {
                 <td className="px-4 py-3">
                   <StatusBadge value={a.status} />
                 </td>
-                <td className="px-4 py-3 text-gray-600">
-                  {a.resolution_reason
-                    ? RESOLUTION_LABELS[a.resolution_reason] ?? a.resolution_reason
-                    : '—'}
+                <td className="px-4 py-3 text-sm">
+                  <ResolutionCell reason={a.resolution_reason} />
                 </td>
               </tr>
             ))}
