@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Link2, Search, Pencil, X, Plus } from 'lucide-react';
+import { Search, Pencil, X, Plus } from 'lucide-react';
 import { getSites, createSite, createCamera } from '../lib/api';
 import type { Site } from '../lib/types';
 import StatusBadge from '../components/StatusBadge';
@@ -39,8 +39,6 @@ export default function CamerasPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-4">Камеры</h1>
-
-      <IntegrationsBlock />
 
       <div className="flex items-center gap-3 mb-4">
         <Dropdown
@@ -133,38 +131,6 @@ export default function CamerasPage() {
           }}
         />
       )}
-    </div>
-  );
-}
-
-function IntegrationsBlock() {
-  return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
-      <div className="text-sm font-semibold text-gray-900 mb-3">Оповещения</div>
-      <div className="space-y-3">
-        <IntegrationRow service="MAX" placeholder="Group" connected />
-        <IntegrationRow service="Telegram" placeholder="Group" connected />
-      </div>
-    </div>
-  );
-}
-
-function IntegrationRow({
-  service,
-  placeholder,
-  connected,
-}: {
-  service: string;
-  placeholder: string;
-  connected?: boolean;
-}) {
-  return (
-    <div>
-      <div className="text-xs text-gray-500 mb-1">{service}</div>
-      <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2">
-        <Link2 size={14} className={connected ? 'text-sky-500' : 'text-gray-400'} />
-        <span className="text-sm text-gray-700">{placeholder}</span>
-      </div>
     </div>
   );
 }

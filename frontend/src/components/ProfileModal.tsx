@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Camera, LogOut, X } from 'lucide-react';
+import { Camera, Link2, LogOut, X } from 'lucide-react';
 import type { User } from '../lib/types';
 import { updateMe, uploadAvatar } from '../lib/api';
 import { useAuthStore } from '../lib/store';
@@ -111,6 +111,12 @@ export default function ProfileModal({ user, onClose }: Props) {
           </div>
         </div>
 
+        <div className="space-y-3 mb-5 pt-4 border-t border-gray-100">
+          <div className="text-sm font-semibold text-gray-900">Уведомления</div>
+          <NotificationRow service="MAX" placeholder="Group" />
+          <NotificationRow service="Telegram" placeholder="Group" />
+        </div>
+
         {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
 
         <div className="flex gap-2">
@@ -142,6 +148,18 @@ export default function ProfileModal({ user, onClose }: Props) {
           <LogOut size={14} />
           Выйти из аккаунта
         </button>
+      </div>
+    </div>
+  );
+}
+
+function NotificationRow({ service, placeholder }: { service: string; placeholder: string }) {
+  return (
+    <div>
+      <div className="text-xs text-gray-500 mb-1">{service}</div>
+      <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2">
+        <Link2 size={14} className="text-sky-500" />
+        <span className="text-sm text-gray-700">{placeholder}</span>
       </div>
     </div>
   );

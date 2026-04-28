@@ -104,10 +104,10 @@ export default function AlertsPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100 text-left text-gray-500 text-xs uppercase tracking-wide">
-              <th className="px-4 py-3 font-medium">Время ↓</th>
-              <th className="px-4 py-3 font-medium">Площадка ↓</th>
-              <th className="px-4 py-3 font-medium">Уровень ↓</th>
-              <th className="px-4 py-3 font-medium">Статус ↓</th>
+              <th className="px-4 py-3 font-medium">Время</th>
+              <th className="px-4 py-3 font-medium">Площадка</th>
+              <th className="px-4 py-3 font-medium">Уровень</th>
+              <th className="px-4 py-3 font-medium">Статус</th>
               <th className="px-4 py-3 font-medium w-10"></th>
             </tr>
           </thead>
