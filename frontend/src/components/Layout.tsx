@@ -1,5 +1,6 @@
+import { useEffect, useState } from 'react';
 import { Link, useLocation, Outlet, Navigate } from 'react-router-dom';
-import { LayoutDashboard, Map, Bell, LogOut } from 'lucide-react';
+import { LayoutDashboard, Map, Bell, LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useAuthStore } from '../lib/store';
 import logo from '../assets/logo.svg';
 import camerasIcon from '../assets/sidebar-cameras.svg';
@@ -18,19 +19,40 @@ const NAV: NavItem[] = [
   { to: '/alerts', label: 'Оповещения', Icon: Bell },
 ];
 
+const COLLAPSE_KEY = 'sidebar-collapsed';
+
 export default function Layout() {
   const location = useLocation();
   const { token, user, logout } = useAuthStore();
+  const [collapsed, setCollapsed] = useState<boolean>(
+    () => localStorage.getItem(COLLAPSE_KEY) === '1'
+  );
+
+  useEffect(() => {
+    localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0');
+  }, [collapsed]);
 
   if (!token) return <Navigate to="/login" replace />;
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <aside className="w-56 bg-white border-r border-gray-200 flex flex-col">
+      <aside
+        className={`${collapsed ? 'w-16' : 'w-56'} bg-white border-r border-gray-200 flex flex-col transition-[width] duration-150`}
+      >
+        <button
+          type="button"
+          onClick={() => setCollapsed((v) => !v)}
+          aria-label={collapsed ? 'Развернуть меню' : 'Свернуть меню'}
+          className="flex items-center gap-2 px-4 py-3 text-xs text-gray-500 hover:bg-gray-50 border-b border-gray-200"
+        >
+          {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+          {!collapsed && <span>Свернуть</span>}
+        </button>
+
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center gap-2">
-            <img src={logo} alt="НЭКОБАК" className="w-8 h-8" />
-            <span className="font-bold text-lg tracking-tight">НЭКОБАК</span>
+            <img src={logo} alt="НЭКОБАК" className="w-8 h-8 flex-shrink-0" />
+            {!collapsed && <span className="font-bold text-lg tracking-tight">НЭКОБАК</span>}
           </div>
         </div>
         <nav className="flex-1 p-2">
@@ -41,6 +63,7 @@ export default function Layout() {
               <Link
                 key={to}
                 to={to}
+                title={collapsed ? label : undefined}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm mb-0.5 transition-colors ${
                   active
                     ? 'bg-gray-100 text-gray-900 font-medium'
@@ -48,33 +71,36 @@ export default function Layout() {
                 }`}
               >
                 {iconSrc ? (
-                  <img src={iconSrc} alt="" className="w-[18px] h-[18px]" />
+                  <img src={iconSrc} alt="" className="w-[18px] h-[18px] flex-shrink-0" />
                 ) : (
                   Icon && <Icon size={18} strokeWidth={active ? 2.2 : 1.8} />
                 )}
-                {label}
+                {!collapsed && label}
               </Link>
             );
           })}
         </nav>
         <div className="p-3 border-t border-gray-200">
           <div className="flex items-center gap-2 px-2">
-            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium">
+            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium flex-shrink-0">
               {user?.full_name?.[0] || '?'}
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-gray-900 truncate">
-                {user?.full_name || 'Пользователь'}
+            {!collapsed && (
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-gray-900 truncate">
+                  {user?.full_name || 'Пользователь'}
+                </div>
+                <div className="text-xs text-gray-500 truncate">{user?.email || ''}</div>
               </div>
-              <div className="text-xs text-gray-500 truncate">{user?.email || ''}</div>
-            </div>
+            )}
           </div>
           <button
             onClick={logout}
+            title={collapsed ? 'Выйти' : undefined}
             className="mt-2 w-full text-xs text-gray-500 hover:text-red-600 transition-colors text-left px-2 flex items-center gap-1.5"
           >
             <LogOut size={14} />
-            Выйти
+            {!collapsed && 'Выйти'}
           </button>
         </div>
       </aside>

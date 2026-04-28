@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Layout from './Layout';
 
 let mockState: { token: string | null; user: unknown; logout: () => void } = {
@@ -32,6 +33,11 @@ function renderAt(path: string) {
 describe('Layout', () => {
   beforeEach(() => {
     mockState = { token: null, user: null, logout: vi.fn() };
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    localStorage.clear();
   });
 
   it('redirects to /login when no token is present', () => {
@@ -62,6 +68,27 @@ describe('Layout', () => {
     renderAt('/cameras');
     const camerasLink = screen.getByRole('link', { name: /Камеры/ });
     expect(camerasLink.className).toMatch(/bg-gray-100/);
+  });
+
+  it('hides nav labels when sidebar is collapsed and persists across renders', async () => {
+    mockState = {
+      token: 'tok',
+      user: { full_name: 'Ivan', email: 'i@x.test' },
+      logout: vi.fn(),
+    };
+    const ue = userEvent.setup();
+    const { unmount } = renderAt('/');
+
+    expect(screen.getByText('Камеры')).toBeInTheDocument();
+
+    await ue.click(screen.getByRole('button', { name: 'Свернуть меню' }));
+    expect(screen.queryByText('Камеры')).toBeNull();
+    expect(localStorage.getItem('sidebar-collapsed')).toBe('1');
+
+    unmount();
+    renderAt('/');
+    expect(screen.queryByText('Камеры')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Развернуть меню' })).toBeInTheDocument();
   });
 
   it('shows the user full name and email in the footer', () => {
