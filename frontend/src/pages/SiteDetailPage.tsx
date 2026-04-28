@@ -1,29 +1,62 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getSite, getSiteSnapshots, getSiteAlerts } from '../lib/api';
-import type { Alert, Site, Snapshot } from '../lib/types';
+import { ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import {
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Area,
+  AreaChart,
+} from 'recharts';
+import {
+  getSite,
+  getSiteSnapshots,
+  getSiteAlerts,
+  getSiteProblemsWeek,
+  getSiteProblemsMonth,
+} from '../lib/api';
+import type { Alert, ProblemsPoint, Site, Snapshot } from '../lib/types';
 import StatusBadge from '../components/StatusBadge';
 import BboxOverlay from '../components/BboxOverlay';
+
+const RESOLUTION_LABELS: Record<string, string> = {
+  confirmed_and_cleared: 'Подтверждено и устранено',
+  false_alarm: 'Ложная тревога',
+  resolved_externally: 'Разрешилось само',
+};
+
+const ALERTS_PER_PAGE = 10;
 
 export default function SiteDetailPage() {
   const { id } = useParams();
   const [site, setSite] = useState<Site | null>(null);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [selectedSnap, setSelectedSnap] = useState<Snapshot | null>(null);
+  const [weekData, setWeekData] = useState<ProblemsPoint[]>([]);
+  const [monthData, setMonthData] = useState<ProblemsPoint[]>([]);
+  const [snapIndex, setSnapIndex] = useState(0);
+  const [alertsPage, setAlertsPage] = useState(1);
 
   useEffect(() => {
     if (!id) return;
     const numId = Number(id);
     getSite(numId).then(setSite);
-    getSiteSnapshots(numId).then((snaps) => {
-      setSnapshots(snaps);
-      if (snaps.length > 0) setSelectedSnap(snaps[0]);
-    });
+    getSiteSnapshots(numId).then(setSnapshots);
     getSiteAlerts(numId).then(setAlerts);
+    getSiteProblemsWeek(numId).then(setWeekData);
+    getSiteProblemsMonth(numId).then(setMonthData);
   }, [id]);
 
   if (!site) return <div className="text-gray-400 p-4">Загрузка...</div>;
+
+  const selectedSnap = snapshots[snapIndex] ?? null;
+
+  const totalAlertPages = Math.max(1, Math.ceil(alerts.length / ALERTS_PER_PAGE));
+  const pageAlerts = alerts.slice(
+    (alertsPage - 1) * ALERTS_PER_PAGE,
+    alertsPage * ALERTS_PER_PAGE
+  );
 
   return (
     <div>
@@ -32,95 +65,184 @@ export default function SiteDetailPage() {
           ← Камеры
         </Link>
       </div>
-      <div className="flex items-center gap-3 mb-4">
+      <div className="flex items-center gap-3 mb-1">
         <h1 className="text-2xl font-bold text-gray-900">{site.name}</h1>
-        <StatusBadge value={site.status} />
+        <StatusBadge value={site.active_status ?? site.status} />
       </div>
       <p className="text-sm text-gray-500 mb-6">{site.address}</p>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-xl p-4 border border-gray-200">
-          <div className="text-xs text-gray-500 mb-1">Координаты</div>
-          <div className="text-sm font-medium">
-            {site.latitude?.toFixed(5)}, {site.longitude?.toFixed(5)}
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-4 border border-gray-200">
-          <div className="text-xs text-gray-500 mb-1">Камеры</div>
-          <div className="text-sm font-medium">{site.camera_count ?? '—'}</div>
-        </div>
-        <div className="bg-white rounded-xl p-4 border border-gray-200">
-          <div className="text-xs text-gray-500 mb-1">Открытых оповещений</div>
-          <div className="text-sm font-medium">
-            {alerts.filter((a) => a.status !== 'resolved').length}
-          </div>
-        </div>
-      </div>
-
-      {/* Snapshot viewer */}
+      {/* Snapshot viewer with carousel */}
       <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
-        <h2 className="font-semibold text-gray-900 mb-3">Последний снимок</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-semibold text-gray-900">Последний снимок</h2>
+          {selectedSnap && (
+            <a
+              href={`/uploads/${selectedSnap.image_path}`}
+              download
+              className="inline-flex items-center gap-1.5 text-sm text-sky-600 hover:text-sky-700 font-medium"
+            >
+              <Download size={14} />
+              Скачать
+            </a>
+          )}
+        </div>
+
         {selectedSnap ? (
-          <div>
-            <BboxOverlay
-              imageUrl={`/uploads/${selectedSnap.image_path}`}
-              detections={selectedSnap.detections || []}
-              width={640}
-              height={480}
-            />
-            <div className="text-xs text-gray-400 mt-2">
+          <>
+            <div className="flex items-center gap-3 mb-3">
+              <button
+                type="button"
+                onClick={() => setSnapIndex((i) => Math.max(0, i - 1))}
+                disabled={snapIndex === 0}
+                aria-label="Предыдущий снимок"
+                className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:hover:bg-transparent"
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <div className="flex-1">
+                <BboxOverlay
+                  imageUrl={`/uploads/${selectedSnap.image_path}`}
+                  detections={selectedSnap.detections || []}
+                  width={640}
+                  height={480}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setSnapIndex((i) => Math.min(snapshots.length - 1, i + 1))}
+                disabled={snapIndex >= snapshots.length - 1}
+                aria-label="Следующий снимок"
+                className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:hover:bg-transparent"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
+            <div className="text-xs text-gray-400">
               {new Date(selectedSnap.taken_at).toLocaleString('ru-RU')}
               {selectedSnap.camera_id && ` · Камера #${selectedSnap.camera_id}`}
+              {snapshots.length > 1 && ` · ${snapIndex + 1} из ${snapshots.length}`}
             </div>
-          </div>
+          </>
         ) : (
-          <div className="text-gray-400 text-sm">Нет снимков</div>
-        )}
-
-        {/* Snapshot carousel */}
-        {snapshots.length > 1 && (
-          <div className="flex gap-2 mt-3 overflow-x-auto pb-2">
-            {snapshots.map((snap) => (
-              <button
-                key={snap.id}
-                onClick={() => setSelectedSnap(snap)}
-                className={`flex-shrink-0 w-20 h-14 rounded-lg overflow-hidden border-2 transition-colors ${
-                  selectedSnap?.id === snap.id ? 'border-blue-500' : 'border-transparent'
-                }`}
-              >
-                <img
-                  src={`/uploads/${snap.image_path}`}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
-              </button>
-            ))}
-          </div>
+          <div className="text-gray-400 text-sm py-12 text-center">Нет снимков</div>
         )}
       </div>
 
-      {/* Alert history */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <h2 className="font-semibold text-gray-900 mb-3">История оповещений</h2>
-        {alerts.length > 0 ? (
-          <div className="space-y-2">
-            {alerts.map((a) => (
-              <div
-                key={a.id}
-                className="flex items-center gap-3 text-sm py-2 border-b border-gray-50 last:border-0"
-              >
-                <StatusBadge value={a.level} />
-                <StatusBadge value={a.status} />
-                <span className="text-gray-400 text-xs ml-auto">
-                  {new Date(a.created_at).toLocaleString('ru-RU')}
-                </span>
-              </div>
+      {/* Two charts side by side */}
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <ProblemsChart title="Проблемы за последние 7 дней" data={weekData} />
+        <ProblemsChart title="Проблемы за последний месяц" data={monthData} />
+      </div>
+
+      {/* Alert history table */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <h2 className="font-semibold text-gray-900 px-5 pt-5 pb-3">История оповещений</h2>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-100 text-left text-gray-500 text-xs uppercase tracking-wide">
+              <th className="px-4 py-3 font-medium">Время</th>
+              <th className="px-4 py-3 font-medium">Уровень</th>
+              <th className="px-4 py-3 font-medium">Статус</th>
+              <th className="px-4 py-3 font-medium">Что сделали</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pageAlerts.map((a) => (
+              <tr key={a.id} className="border-b border-gray-50 last:border-0">
+                <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                  {new Date(a.created_at).toLocaleString('ru-RU', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </td>
+                <td className="px-4 py-3">
+                  <StatusBadge value={a.level} />
+                </td>
+                <td className="px-4 py-3">
+                  <StatusBadge value={a.status} />
+                </td>
+                <td className="px-4 py-3 text-gray-600">
+                  {a.resolution_reason
+                    ? RESOLUTION_LABELS[a.resolution_reason] ?? a.resolution_reason
+                    : '—'}
+                </td>
+              </tr>
             ))}
+            {alerts.length === 0 && (
+              <tr>
+                <td colSpan={4} className="px-4 py-10 text-center text-gray-400 text-sm">
+                  Нет оповещений
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+
+        {alerts.length > ALERTS_PER_PAGE && (
+          <div className="flex items-center justify-end gap-1 px-4 py-3 border-t border-gray-100 text-sm">
+            <PagerButton
+              disabled={alertsPage <= 1}
+              onClick={() => setAlertsPage((p) => p - 1)}
+            >
+              <ChevronLeft size={14} />
+            </PagerButton>
+            <span className="px-2 text-gray-500">
+              {alertsPage} / {totalAlertPages}
+            </span>
+            <PagerButton
+              disabled={alertsPage >= totalAlertPages}
+              onClick={() => setAlertsPage((p) => p + 1)}
+            >
+              <ChevronRight size={14} />
+            </PagerButton>
           </div>
-        ) : (
-          <div className="text-gray-400 text-sm">Нет оповещений</div>
         )}
       </div>
     </div>
+  );
+}
+
+function ProblemsChart({ title, data }: { title: string; data: ProblemsPoint[] }) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-5">
+      <h2 className="font-semibold text-gray-900 mb-3">{title}</h2>
+      <ResponsiveContainer width="100%" height={180}>
+        <AreaChart data={data}>
+          <XAxis dataKey="day" tick={{ fontSize: 10 }} />
+          <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+          <Tooltip />
+          <Area
+            type="monotone"
+            dataKey="count"
+            stroke="#3b82f6"
+            fill="#dbeafe"
+            strokeWidth={2}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+function PagerButton({
+  children,
+  onClick,
+  disabled,
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="min-w-[28px] h-7 px-1.5 rounded text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent"
+    >
+      {children}
+    </button>
   );
 }

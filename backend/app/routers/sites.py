@@ -1,3 +1,5 @@
+import datetime as dt
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -138,3 +140,38 @@ def get_site_alerts(
         {**{c.name: getattr(a, c.name) for c in a.__table__.columns}, "site_name": site.name}
         for a in alerts
     ]
+
+
+@router.get("/{site_id}/problems-week")
+def get_site_problems_week(
+    site_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    _get_site_or_404(site_id, db, user)
+    return _site_problems_since(db, site_id, days=7)
+
+
+@router.get("/{site_id}/problems-month")
+def get_site_problems_month(
+    site_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    _get_site_or_404(site_id, db, user)
+    return _site_problems_since(db, site_id, days=31)
+
+
+def _site_problems_since(db: Session, site_id: int, days: int) -> list[dict]:
+    since = dt.datetime.now(dt.UTC) - dt.timedelta(days=days)
+    rows = (
+        db.query(
+            func.date(Alert.created_at).label("day"),
+            func.count(Alert.id).label("count"),
+        )
+        .filter(Alert.site_id == site_id, Alert.created_at >= since)
+        .group_by(func.date(Alert.created_at))
+        .order_by(func.date(Alert.created_at))
+        .all()
+    )
+    return [{"day": str(r.day), "count": r.count} for r in rows]

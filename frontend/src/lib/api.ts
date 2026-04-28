@@ -78,6 +78,10 @@ export const deleteSite = (id: number) => request<void>(`/sites/${id}`, { method
 export const getSiteSnapshots = (id: number, limit = 20) =>
   request<Snapshot[]>(`/sites/${id}/snapshots?limit=${limit}`);
 export const getSiteAlerts = (id: number) => request<Alert[]>(`/sites/${id}/alerts`);
+export const getSiteProblemsWeek = (id: number) =>
+  request<ProblemsPoint[]>(`/sites/${id}/problems-week`);
+export const getSiteProblemsMonth = (id: number) =>
+  request<ProblemsPoint[]>(`/sites/${id}/problems-month`);
 
 // ── Cameras ───────────────────────────────────────────────────────────
 export const getCameras = () => request<Camera[]>('/cameras');
