@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { ChevronLeft, ChevronRight, Download, Pencil, X } from 'lucide-react';
 import {
   XAxis,
   YAxis,
@@ -15,10 +15,16 @@ import {
   getSiteAlerts,
   getSiteProblemsWeek,
   getSiteProblemsMonth,
+  updateSite,
+  updateCamera,
+  deleteSite,
+  getCameras,
 } from '../lib/api';
-import type { Alert, ProblemsPoint, Site, Snapshot } from '../lib/types';
+import type { Alert, Camera, ProblemsPoint, Site, Snapshot } from '../lib/types';
 import StatusBadge from '../components/StatusBadge';
 import BboxOverlay from '../components/BboxOverlay';
+import CameraForm from '../components/CameraForm';
+import type { CameraFormValues } from '../components/CameraForm';
 
 const RESOLUTION_LABELS: Record<string, string> = {
   confirmed_and_cleared: 'Подтверждено и устранено',
@@ -30,22 +36,33 @@ const ALERTS_PER_PAGE = 10;
 
 export default function SiteDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [site, setSite] = useState<Site | null>(null);
+  const [siteCamera, setSiteCamera] = useState<Camera | null>(null);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [weekData, setWeekData] = useState<ProblemsPoint[]>([]);
   const [monthData, setMonthData] = useState<ProblemsPoint[]>([]);
   const [snapIndex, setSnapIndex] = useState(0);
   const [alertsPage, setAlertsPage] = useState(1);
+  const [editOpen, setEditOpen] = useState(false);
 
-  useEffect(() => {
+  const reload = () => {
     if (!id) return;
     const numId = Number(id);
     getSite(numId).then(setSite);
+    getCameras().then((cams) => {
+      setSiteCamera(cams.find((c) => c.site_id === numId) ?? null);
+    });
     getSiteSnapshots(numId).then(setSnapshots);
     getSiteAlerts(numId).then(setAlerts);
     getSiteProblemsWeek(numId).then(setWeekData);
     getSiteProblemsMonth(numId).then(setMonthData);
+  };
+
+  useEffect(() => {
+    reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   if (!site) return <div className="text-gray-400 p-4">Загрузка...</div>;
@@ -68,6 +85,14 @@ export default function SiteDetailPage() {
       <div className="flex items-center gap-3 mb-1">
         <h1 className="text-2xl font-bold text-gray-900">{site.name}</h1>
         <StatusBadge value={site.active_status ?? site.status} />
+        <button
+          type="button"
+          onClick={() => setEditOpen(true)}
+          className="ml-auto inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50"
+        >
+          <Pencil size={14} />
+          Изменить
+        </button>
       </div>
       <p className="text-sm text-gray-500 mb-6">{site.address}</p>
 
@@ -200,6 +225,86 @@ export default function SiteDetailPage() {
             </PagerButton>
           </div>
         )}
+      </div>
+
+      {editOpen && (
+        <EditCameraModal
+          site={site}
+          camera={siteCamera}
+          onClose={() => setEditOpen(false)}
+          onSaved={() => {
+            setEditOpen(false);
+            reload();
+          }}
+          onDeleted={() => navigate('/cameras')}
+        />
+      )}
+    </div>
+  );
+}
+
+function EditCameraModal({
+  site,
+  camera,
+  onClose,
+  onSaved,
+  onDeleted,
+}: {
+  site: Site;
+  camera: Camera | null;
+  onClose: () => void;
+  onSaved: () => void;
+  onDeleted: () => void;
+}) {
+  const handleSubmit = async (values: CameraFormValues) => {
+    await updateSite(site.id, {
+      name: values.name,
+      address: values.address,
+      latitude: values.latitude,
+      longitude: values.longitude,
+    });
+    if (camera) {
+      await updateCamera(camera.id, {
+        name: values.name,
+        rtsp_url: values.rtsp_url,
+      });
+    }
+    onSaved();
+  };
+
+  const handleDelete = async () => {
+    await deleteSite(site.id);
+    onDeleted();
+  };
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-base font-semibold text-gray-900">Изменить камеру</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-700">
+            <X size={18} />
+          </button>
+        </div>
+        <CameraForm
+          submitLabel="Сохранить"
+          initial={{
+            name: site.name,
+            address: site.address,
+            rtsp_url: camera?.rtsp_url ?? '',
+            latitude: site.latitude,
+            longitude: site.longitude,
+          }}
+          onCancel={onClose}
+          onSubmit={handleSubmit}
+          onDelete={handleDelete}
+        />
       </div>
     </div>
   );

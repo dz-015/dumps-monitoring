@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Link2, Search, Pencil, X, Plus } from 'lucide-react';
-import { getSites, createSite } from '../lib/api';
+import { getSites, createSite, createCamera } from '../lib/api';
 import type { Site } from '../lib/types';
 import StatusBadge from '../components/StatusBadge';
 import Dropdown from '../components/Dropdown';
+import CameraForm from '../components/CameraForm';
+import type { CameraFormValues } from '../components/CameraForm';
 
 const STATUS_FILTERS = [
   { value: 'all', label: 'Все типы' },
@@ -168,26 +170,19 @@ function IntegrationRow({
 }
 
 function AddCameraModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
-  const [name, setName] = useState('');
-  const [rtsp, setRtsp] = useState('');
-  const [address, setAddress] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setError('');
-    try {
-      // MVP: create Site; Camera creation will follow once backend supports
-      // the "one-request" camera+site in this view.
-      await createSite({ name, address });
-      onCreated();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка');
-    } finally {
-      setSaving(false);
-    }
+  const handleSubmit = async (values: CameraFormValues) => {
+    const site = await createSite({
+      name: values.name,
+      address: values.address,
+      latitude: values.latitude,
+      longitude: values.longitude,
+    });
+    await createCamera({
+      site_id: site.id,
+      name: values.name,
+      rtsp_url: values.rtsp_url,
+    });
+    onCreated();
   };
 
   return (
@@ -196,7 +191,7 @@ function AddCameraModal({ onClose, onCreated }: { onClose: () => void; onCreated
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl"
+        className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-5">
@@ -205,62 +200,7 @@ function AddCameraModal({ onClose, onCreated }: { onClose: () => void; onCreated
             <X size={18} />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm text-gray-700 mb-1">Название *</label>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-gray-700 mb-1">Ссылка *</label>
-            <input
-              value={rtsp}
-              onChange={(e) => setRtsp(e.target.value)}
-              placeholder="rtsp://login:password@IP_address:554/path"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-sky-400"
-              required
-            />
-            <p className="text-xs text-gray-400 mt-1">RTSP ссылка на камеру</p>
-          </div>
-          <div>
-            <label className="block text-sm text-gray-700 mb-1">Адрес *</label>
-            <div className="relative">
-              <Search
-                size={14}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              />
-              <input
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg pl-8 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
-                required
-              />
-            </div>
-          </div>
-
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-
-          <div className="flex gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 border border-gray-200 text-gray-700 font-medium py-2.5 rounded-lg hover:bg-gray-50"
-            >
-              Отмена
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex-1 bg-sky-500 hover:bg-sky-600 text-white font-medium py-2.5 rounded-lg disabled:opacity-50"
-            >
-              {saving ? '…' : 'Добавить'}
-            </button>
-          </div>
-        </form>
+        <CameraForm submitLabel="Добавить" onCancel={onClose} onSubmit={handleSubmit} />
       </div>
     </div>
   );

@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.auth import get_current_user
 from app.db.database import get_db
 from app.db.models import Camera, Site, User
-from app.schemas import CameraCreate, CameraOut
+from app.schemas import CameraCreate, CameraOut, CameraUpdate
 
 router = APIRouter(prefix="/api/cameras", tags=["cameras"])
 
@@ -56,6 +56,21 @@ def create_camera(
     _get_site_in_org_or_404(data.site_id, db, user)
     cam = Camera(**data.model_dump())
     db.add(cam)
+    db.commit()
+    db.refresh(cam)
+    return _cam_to_out(cam, db)
+
+
+@router.patch("/{camera_id}", response_model=CameraOut)
+def update_camera(
+    camera_id: int,
+    data: CameraUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    cam = _get_camera_or_404(camera_id, db, user)
+    for k, v in data.model_dump(exclude_unset=True).items():
+        setattr(cam, k, v)
     db.commit()
     db.refresh(cam)
     return _cam_to_out(cam, db)

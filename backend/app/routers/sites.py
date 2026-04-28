@@ -100,6 +100,9 @@ def delete_site(
     site_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
     site = _get_site_or_404(site_id, db, user)
+    db.query(Snapshot).filter(Snapshot.site_id == site_id).delete()
+    db.query(Alert).filter(Alert.site_id == site_id).delete()
+    db.query(Camera).filter(Camera.site_id == site_id).delete()
     db.delete(site)
     db.commit()
 

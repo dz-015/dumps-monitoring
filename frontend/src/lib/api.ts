@@ -87,6 +87,8 @@ export const getSiteProblemsMonth = (id: number) =>
 export const getCameras = () => request<Camera[]>('/cameras');
 export const createCamera = (data: CameraCreate) =>
   request<Camera>('/cameras', { method: 'POST', body: JSON.stringify(data) });
+export const updateCamera = (id: number, data: Partial<CameraCreate>) =>
+  request<Camera>(`/cameras/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
 export const deleteCamera = (id: number) => request<void>(`/cameras/${id}`, { method: 'DELETE' });
 
 // ── Alerts ────────────────────────────────────────────────────────────
