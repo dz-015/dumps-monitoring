@@ -19,9 +19,14 @@ class UserOut(BaseModel):
     is_active: bool
     is_admin: bool = False
     organization_id: int | None = None
+    avatar_path: str | None = None
 
     class Config:
         from_attributes = True
+
+
+class UserUpdate(BaseModel):
+    full_name: str | None = None
 
 
 class OrganizationOut(BaseModel):

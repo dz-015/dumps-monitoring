@@ -13,6 +13,7 @@ export interface User {
   is_active: boolean;
   is_admin: boolean;
   organization_id: number | null;
+  avatar_path: string | null;
 }
 
 export interface Site {

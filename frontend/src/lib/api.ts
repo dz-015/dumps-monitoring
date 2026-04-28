@@ -50,6 +50,15 @@ export const login = (email: string, password: string) =>
     skipAuthRedirect: true,
   });
 
+export const updateMe = (data: { full_name?: string }) =>
+  request<User>('/auth/me', { method: 'PATCH', body: JSON.stringify(data) });
+
+export const uploadAvatar = (file: File) => {
+  const fd = new FormData();
+  fd.append('file', file);
+  return request<User>('/auth/avatar', { method: 'POST', body: fd });
+};
+
 export type RegisterPayload =
   | { email: string; password: string; full_name: string; organization_name: string }
   | { email: string; password: string; full_name: string; join_code: string };

@@ -1,12 +1,17 @@
 import secrets
+import uuid
+from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.auth import create_access_token, get_current_user, hash_password, verify_password
+from app.config import settings
 from app.db.database import get_db
 from app.db.models import Organization, User
-from app.schemas import LoginRequest, Token, UserCreate, UserOut
+from app.schemas import LoginRequest, Token, UserCreate, UserOut, UserUpdate
+
+ALLOWED_AVATAR_TYPES = {"image/png", "image/jpeg", "image/webp", "image/gif"}
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -53,4 +58,40 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
 
 @router.get("/me", response_model=UserOut)
 def me(current_user: User = Depends(get_current_user)):
+    return current_user
+
+
+@router.patch("/me", response_model=UserOut)
+def update_me(
+    data: UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    for k, v in data.model_dump(exclude_unset=True).items():
+        setattr(current_user, k, v)
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
+@router.post("/avatar", response_model=UserOut)
+async def upload_avatar(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if file.content_type not in ALLOWED_AVATAR_TYPES:
+        raise HTTPException(400, f"Allowed image types: {sorted(ALLOWED_AVATAR_TYPES)}")
+
+    avatars_dir = Path(settings.UPLOAD_DIR) / "avatars"
+    avatars_dir.mkdir(parents=True, exist_ok=True)
+
+    ext = Path(file.filename or "").suffix.lower() or ".bin"
+    dest_name = f"{current_user.id}_{uuid.uuid4().hex}{ext}"
+    dest_path = avatars_dir / dest_name
+    dest_path.write_bytes(await file.read())
+
+    current_user.avatar_path = f"avatars/{dest_name}"
+    db.commit()
+    db.refresh(current_user)
     return current_user

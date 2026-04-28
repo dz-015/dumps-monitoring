@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, Outlet, Navigate } from 'react-router-dom';
-import { LayoutDashboard, Map, Bell, LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { LayoutDashboard, Map, Bell, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useAuthStore } from '../lib/store';
+import { getMe } from '../lib/api';
+import ProfileModal from './ProfileModal';
 import logo from '../assets/logo.svg';
 import camerasIcon from '../assets/sidebar-cameras.svg';
 
@@ -23,14 +25,24 @@ const COLLAPSE_KEY = 'sidebar-collapsed';
 
 export default function Layout() {
   const location = useLocation();
-  const { token, user, logout } = useAuthStore();
+  const { token, user } = useAuthStore();
+  const setUser = useAuthStore((s) => s.setUser);
   const [collapsed, setCollapsed] = useState<boolean>(
     () => localStorage.getItem(COLLAPSE_KEY) === '1'
   );
+  const [profileOpen, setProfileOpen] = useState(false);
 
   useEffect(() => {
     localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0');
   }, [collapsed]);
+
+  // Hydrate user from /me on first mount when we have a token but no profile yet
+  // (e.g. page reload — token in storage, store.user is null).
+  useEffect(() => {
+    if (token && !user) {
+      getMe().then(setUser).catch(() => {});
+    }
+  }, [token, user, setUser]);
 
   if (!token) return <Navigate to="/login" replace />;
 
@@ -80,10 +92,23 @@ export default function Layout() {
             );
           })}
         </nav>
-        <div className="p-3 border-t border-gray-200">
+        <button
+          type="button"
+          onClick={() => setProfileOpen(true)}
+          title={collapsed ? user?.full_name || user?.email : undefined}
+          className="p-3 border-t border-gray-200 text-left hover:bg-gray-50 transition-colors"
+        >
           <div className="flex items-center gap-2 px-2">
-            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium flex-shrink-0">
-              {user?.full_name?.[0] || '?'}
+            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium flex-shrink-0 overflow-hidden">
+              {user?.avatar_path ? (
+                <img
+                  src={`/uploads/${user.avatar_path}`}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                user?.full_name?.[0] || user?.email?.[0]?.toUpperCase() || '?'
+              )}
             </div>
             {!collapsed && (
               <div className="flex-1 min-w-0">
@@ -94,20 +119,16 @@ export default function Layout() {
               </div>
             )}
           </div>
-          <button
-            onClick={logout}
-            title={collapsed ? 'Выйти' : undefined}
-            className="mt-2 w-full text-xs text-gray-500 hover:text-red-600 transition-colors text-left px-2 flex items-center gap-1.5"
-          >
-            <LogOut size={14} />
-            {!collapsed && 'Выйти'}
-          </button>
-        </div>
+        </button>
       </aside>
 
       <main className="flex-1 p-6 overflow-auto">
         <Outlet />
       </main>
+
+      {profileOpen && user && (
+        <ProfileModal user={user} onClose={() => setProfileOpen(false)} />
+      )}
     </div>
   );
 }
