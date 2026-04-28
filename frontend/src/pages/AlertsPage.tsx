@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react'
 import { getAlerts, updateAlert } from '../lib/api';
 import type { Alert, ResolutionReason } from '../lib/types';
 import StatusBadge from '../components/StatusBadge';
+import Dropdown from '../components/Dropdown';
 
 const RESOLUTION_OPTIONS: { value: ResolutionReason; label: string; hint: string }[] = [
   {
@@ -70,7 +71,7 @@ export default function AlertsPage() {
       </p>
 
       <div className="flex gap-2 mb-4">
-        <FilterSelect
+        <Dropdown
           value={levelFilter}
           onChange={(v) => {
             setLevelFilter(v);
@@ -78,11 +79,12 @@ export default function AlertsPage() {
           }}
           options={[
             { value: '', label: 'Все уровни' },
-            { value: 'overflow', label: 'Переполнение' },
-            { value: 'contamination', label: 'Загрязнение' },
+            { value: 'overflow', label: 'Переполнение', tone: 'yellow' },
+            { value: 'contamination', label: 'Загрязнение', tone: 'red' },
           ]}
+          ariaLabel="Фильтр по уровню"
         />
-        <FilterSelect
+        <Dropdown
           value={statusFilter}
           onChange={(v) => {
             setStatusFilter(v);
@@ -90,10 +92,11 @@ export default function AlertsPage() {
           }}
           options={[
             { value: '', label: 'Все статусы' },
-            { value: 'new', label: '🔵 Новый' },
-            { value: 'accepted', label: '🟡 Принят' },
-            { value: 'resolved', label: '🟢 Решён' },
+            { value: 'new', label: 'Новый', tone: 'blue' },
+            { value: 'accepted', label: 'Принят', tone: 'yellow' },
+            { value: 'resolved', label: 'Решён', tone: 'green' },
           ]}
+          ariaLabel="Фильтр по статусу"
         />
       </div>
 
@@ -256,36 +259,6 @@ function pagerNumbers(current: number, total: number): (number | '…')[] {
   if (current < total - 2) out.push('…');
   out.push(total);
   return out;
-}
-
-function FilterSelect({
-  value,
-  onChange,
-  options,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  options: { value: string; label: string }[];
-}) {
-  return (
-    <div className="relative">
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="appearance-none border border-gray-200 rounded-xl pl-3 pr-9 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-sky-400"
-      >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-      <ChevronDown
-        size={16}
-        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-      />
-    </div>
-  );
 }
 
 function ActionButton({
