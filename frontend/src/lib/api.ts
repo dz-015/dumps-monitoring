@@ -104,6 +104,7 @@ export const deleteCamera = (id: number) => request<void>(`/cameras/${id}`, { me
 export interface AlertsQuery {
   level?: string;
   status?: string;
+  since?: string;
   page?: number;
   per_page?: number;
 }
@@ -112,6 +113,7 @@ export const getAlerts = (params: AlertsQuery = {}) => {
   const sp = new URLSearchParams();
   if (params.level) sp.set('level', params.level);
   if (params.status) sp.set('status', params.status);
+  if (params.since) sp.set('since', params.since);
   if (params.page) sp.set('page', String(params.page));
   if (params.per_page) sp.set('per_page', String(params.per_page));
   return request<AlertsPage>(`/alerts?${sp}`);

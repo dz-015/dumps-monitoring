@@ -51,20 +51,32 @@ export default function Layout() {
       <aside
         className={`${collapsed ? 'w-16' : 'w-56'} bg-white border-r border-gray-200 flex flex-col transition-[width] duration-150`}
       >
-        <button
-          type="button"
-          onClick={() => setCollapsed((v) => !v)}
-          aria-label={collapsed ? 'Развернуть меню' : 'Свернуть меню'}
-          className="flex items-center gap-2 px-4 py-3 text-xs text-gray-500 hover:bg-gray-50 border-b border-gray-200"
-        >
-          {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
-          {!collapsed && <span>Свернуть</span>}
-        </button>
-
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center gap-2">
             <img src={logo} alt="НЭКОБАК" className="w-8 h-8 flex-shrink-0" />
-            {!collapsed && <span className="font-bold text-lg tracking-tight">НЭКОБАК</span>}
+            {!collapsed && (
+              <>
+                <span className="font-bold text-lg tracking-tight">НЭКОБАК</span>
+                <button
+                  type="button"
+                  onClick={() => setCollapsed(true)}
+                  aria-label="Свернуть меню"
+                  className="ml-auto p-1 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+                >
+                  <PanelLeftClose size={16} />
+                </button>
+              </>
+            )}
+            {collapsed && (
+              <button
+                type="button"
+                onClick={() => setCollapsed(false)}
+                aria-label="Развернуть меню"
+                className="p-1 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+              >
+                <PanelLeftOpen size={16} />
+              </button>
+            )}
           </div>
         </div>
         <nav className="flex-1 p-2">

@@ -25,12 +25,28 @@ const RESOLUTION_OPTIONS: { value: ResolutionReason; label: string; hint: string
 
 const PER_PAGE = 10;
 
+const PERIOD_OPTIONS = [
+  { value: '', label: 'Всё время' },
+  { value: '1', label: 'За сегодня' },
+  { value: '7', label: 'За 7 дней' },
+  { value: '30', label: 'За 30 дней' },
+];
+
+function periodToSince(days: string): string | undefined {
+  if (!days) return undefined;
+  const n = Number(days);
+  const since = new Date(Date.now() - n * 24 * 60 * 60 * 1000);
+  // Z-suffix avoids the "+00:00" → space pitfall in URL query parsing.
+  return since.toISOString().replace(/\.\d{3}Z$/, 'Z');
+}
+
 export default function AlertsPage() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [levelFilter, setLevelFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [periodFilter, setPeriodFilter] = useState('');
   const [expanded, setExpanded] = useState<number | null>(null);
   const [resolvingId, setResolvingId] = useState<number | null>(null);
 
@@ -38,13 +54,14 @@ export default function AlertsPage() {
     getAlerts({
       level: levelFilter || undefined,
       status: statusFilter || undefined,
+      since: periodToSince(periodFilter),
       page,
       per_page: PER_PAGE,
     }).then((res) => {
       setAlerts(res.items);
       setTotal(res.total);
     });
-  }, [page, levelFilter, statusFilter]);
+  }, [page, levelFilter, statusFilter, periodFilter]);
 
   useEffect(() => {
     load();
@@ -97,6 +114,15 @@ export default function AlertsPage() {
             { value: 'resolved', label: 'Решён', tone: 'green' },
           ]}
           ariaLabel="Фильтр по статусу"
+        />
+        <Dropdown
+          value={periodFilter}
+          onChange={(v) => {
+            setPeriodFilter(v);
+            setPage(1);
+          }}
+          options={PERIOD_OPTIONS}
+          ariaLabel="Фильтр по периоду"
         />
       </div>
 

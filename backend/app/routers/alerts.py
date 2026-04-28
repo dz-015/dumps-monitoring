@@ -24,6 +24,7 @@ def _scoped(query, user: User):
 def list_alerts(
     level: str | None = Query(None),
     status: str | None = Query(None),
+    since: str | None = Query(None),
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -34,6 +35,12 @@ def list_alerts(
         q = q.filter(Alert.level == level)
     if status:
         q = q.filter(Alert.status == status)
+    if since:
+        try:
+            since_dt = dt.datetime.fromisoformat(since)
+        except ValueError as e:
+            raise HTTPException(400, f"Invalid `since` ISO datetime: {e}") from e
+        q = q.filter(Alert.created_at >= since_dt)
     total = q.count()
     alerts = q.order_by(Alert.created_at.desc()).offset((page - 1) * per_page).limit(per_page).all()
 
