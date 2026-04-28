@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { login, getMe } from '../lib/api';
 import { useAuthStore } from '../lib/store';
+import { clearToken, setToken } from '../lib/tokenStorage';
 import logo from '../assets/logo.svg';
 
 export default function LoginPage() {
@@ -21,9 +22,15 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const { access_token } = await login(email.trim(), password);
-      const user = await getMe();
-      setAuth(access_token, user, remember);
-      navigate('/');
+      setToken(access_token, remember);
+      try {
+        const user = await getMe();
+        setAuth(access_token, user, remember);
+        navigate('/');
+      } catch (meErr) {
+        clearToken();
+        throw meErr;
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Произошла ошибка');
       setPassword('');

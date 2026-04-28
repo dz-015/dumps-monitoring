@@ -106,6 +106,24 @@ describe('LoginPage', () => {
     expect(passwordInput.value).toBe('');
   });
 
+  it('persists the token to storage before getMe runs (so getMe can authenticate)', async () => {
+    loginMock.mockResolvedValue({ access_token: 'tok-fresh' });
+    let tokenSeenByGetMe: string | null = null;
+    getMeMock.mockImplementation(async () => {
+      tokenSeenByGetMe =
+        localStorage.getItem('token') ?? sessionStorage.getItem('token');
+      return { id: 1, email: 'u@x.test', full_name: 'U' };
+    });
+    const ue = userEvent.setup();
+    renderLogin();
+
+    await ue.type(screen.getByLabelText('Email'), 'u@x.test');
+    await ue.type(screen.getByLabelText('Пароль'), 'pw12345');
+    await ue.click(screen.getByRole('button', { name: 'Войти' }));
+
+    expect(tokenSeenByGetMe).toBe('tok-fresh');
+  });
+
   it('toggles password visibility when the eye button is clicked', async () => {
     const user = userEvent.setup();
     renderLogin();
