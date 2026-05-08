@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Pencil, X, Plus } from 'lucide-react';
-import { getSites, createSite, createCamera } from '../lib/api';
+import { getSites, createSite, createCamera, deleteSite } from '../lib/api';
 import type { Site } from '../lib/types';
 import StatusBadge from '../components/StatusBadge';
 import Dropdown from '../components/Dropdown';
@@ -143,11 +143,19 @@ function AddCameraModal({ onClose, onCreated }: { onClose: () => void; onCreated
       latitude: values.latitude,
       longitude: values.longitude,
     });
-    await createCamera({
-      site_id: site.id,
-      name: values.name,
-      rtsp_url: values.rtsp_url,
-    });
+    try {
+      await createCamera({
+        site_id: site.id,
+        name: values.name,
+        rtsp_url: values.rtsp_url,
+      });
+    } catch (err) {
+      // Roll the orphan site back so the user doesn't see a half-created
+      // entry on the list. Best-effort — if the rollback itself fails we
+      // still surface the original error to the form.
+      await deleteSite(site.id).catch(() => {});
+      throw err;
+    }
     onCreated();
   };
 

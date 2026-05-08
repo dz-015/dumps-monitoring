@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
 import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getAlerts, updateAlert } from '../lib/api';
 import type { Alert, ResolutionReason } from '../lib/types';
@@ -141,9 +141,8 @@ export default function AlertsPage() {
             {alerts.map((a) => {
               const open = expanded === a.id;
               return (
-                <>
+                <Fragment key={a.id}>
                   <tr
-                    key={a.id}
                     className="border-b border-gray-50 hover:bg-gray-50 cursor-pointer"
                     onClick={() => setExpanded(open ? null : a.id)}
                   >
@@ -164,7 +163,7 @@ export default function AlertsPage() {
                     </td>
                   </tr>
                   {open && (
-                    <tr key={`${a.id}-detail`} className="bg-gray-50/60 border-b border-gray-100">
+                    <tr className="bg-gray-50/60 border-b border-gray-100">
                       <td colSpan={5} className="px-6 py-4 text-sm text-gray-700">
                         <div className="flex items-start gap-8">
                           <div>
@@ -229,7 +228,7 @@ export default function AlertsPage() {
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               );
             })}
             {alerts.length === 0 && (
