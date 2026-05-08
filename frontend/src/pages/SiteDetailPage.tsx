@@ -100,13 +100,21 @@ export default function SiteDetailPage() {
   };
 
   useEffect(() => {
+    // Reset paginations when switching between sites — otherwise the previous
+    // site's index can land out-of-bounds on the new (potentially shorter)
+    // snapshots / alerts list.
+    setSnapIndex(0);
+    setAlertsPage(1);
     reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   if (!site) return <div className="text-gray-400 p-4">Загрузка...</div>;
 
-  const selectedSnap = snapshots[snapIndex] ?? null;
+  // Clamp snapIndex against the current snapshot list length — guards a brief
+  // window after `reload` where snapshots[] is repopulating.
+  const safeSnapIndex = Math.min(snapIndex, Math.max(0, snapshots.length - 1));
+  const selectedSnap = snapshots[safeSnapIndex] ?? null;
 
   const totalAlertPages = Math.max(1, Math.ceil(alerts.length / ALERTS_PER_PAGE));
   const pageAlerts = alerts.slice(
@@ -157,7 +165,7 @@ export default function SiteDetailPage() {
               <button
                 type="button"
                 onClick={() => setSnapIndex((i) => Math.max(0, i - 1))}
-                disabled={snapIndex === 0}
+                disabled={safeSnapIndex === 0}
                 aria-label="Предыдущий снимок"
                 className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:hover:bg-transparent"
               >
@@ -174,7 +182,7 @@ export default function SiteDetailPage() {
               <button
                 type="button"
                 onClick={() => setSnapIndex((i) => Math.min(snapshots.length - 1, i + 1))}
-                disabled={snapIndex >= snapshots.length - 1}
+                disabled={safeSnapIndex >= snapshots.length - 1}
                 aria-label="Следующий снимок"
                 className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:hover:bg-transparent"
               >
@@ -184,7 +192,7 @@ export default function SiteDetailPage() {
             <div className="text-xs text-gray-400">
               {new Date(selectedSnap.taken_at).toLocaleString('ru-RU')}
               {selectedSnap.camera_id && ` · Камера #${selectedSnap.camera_id}`}
-              {snapshots.length > 1 && ` · ${snapIndex + 1} из ${snapshots.length}`}
+              {snapshots.length > 1 && ` · ${safeSnapIndex + 1} из ${snapshots.length}`}
             </div>
           </>
         ) : (

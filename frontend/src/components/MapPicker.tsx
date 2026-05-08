@@ -1,6 +1,6 @@
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import 'leaflet/dist/leaflet.css';
 import pinGreen from '../assets/map-pins/green.svg';
 
@@ -30,8 +30,15 @@ function ClickToPick({ onChange }: { onChange: (lat: number, lng: number) => voi
 
 function CenterOnce({ position }: { position: [number, number] | null }) {
   const map = useMap();
+  const centeredRef = useRef(false);
   useEffect(() => {
-    if (position) map.setView(position);
+    // Recenter only on the first time we get a real position (e.g. when initial
+    // coords arrive from the parent for the edit form). Subsequent picks must
+    // not yank the viewport — the pin moves but the map stays put.
+    if (position && !centeredRef.current) {
+      map.setView(position);
+      centeredRef.current = true;
+    }
   }, [map, position]);
   return null;
 }
