@@ -1,19 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bell, CheckCircle2, ArrowUpRight } from 'lucide-react';
-import {
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Area,
-  AreaChart,
-} from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { getDashboardStats, getProblemsWeek, getProblemsMonth } from '../lib/api';
 import type { DashboardStats, ProblemsPoint } from '../lib/types';
+import ProblemsAreaChart from '../components/ProblemsAreaChart';
 import sitesIcon from '../assets/kpi-sites.svg';
 import camerasIcon from '../assets/kpi-cameras.svg';
 
@@ -108,32 +99,12 @@ export default function DashboardPage() {
         </Card>
 
         <Card title="Проблемы за последние 7 дней" subtitle="Ежедневная динамика">
-          <ResponsiveContainer width="100%" height={160}>
-            <AreaChart data={weekData}>
-              <XAxis dataKey="day" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-              <Tooltip />
-              <Area
-                type="monotone"
-                dataKey="count"
-                stroke="#3b82f6"
-                fill="#dbeafe"
-                strokeWidth={2}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+          <ProblemsAreaChart data={weekData} height={160} />
         </Card>
       </div>
 
       <Card title="Проблемы за последний месяц" subtitle="Ежедневная динамика">
-        <ResponsiveContainer width="100%" height={200}>
-          <AreaChart data={monthData}>
-            <XAxis dataKey="day" tick={{ fontSize: 10 }} />
-            <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-            <Tooltip />
-            <Area type="monotone" dataKey="count" stroke="#3b82f6" fill="#dbeafe" strokeWidth={2} />
-          </AreaChart>
-        </ResponsiveContainer>
+        <ProblemsAreaChart data={monthData} height={200} xTickFontSize={10} />
       </Card>
     </div>
   );

@@ -3,6 +3,7 @@ import { Camera, Link2, LogOut, X } from 'lucide-react';
 import type { User } from '../lib/types';
 import { updateMe, uploadAvatar } from '../lib/api';
 import { useAuthStore } from '../lib/store';
+import { useEscape } from '../lib/useEscape';
 
 interface Props {
   user: User;
@@ -17,6 +18,8 @@ export default function ProfileModal({ user, onClose }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEscape(onClose);
 
   const handleAvatarPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

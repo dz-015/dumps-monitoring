@@ -11,14 +11,6 @@ import {
   XCircle,
 } from 'lucide-react';
 import {
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Area,
-  AreaChart,
-} from 'recharts';
-import {
   getSite,
   getSiteSnapshots,
   getSiteAlerts,
@@ -34,6 +26,8 @@ import StatusBadge from '../components/StatusBadge';
 import BboxOverlay from '../components/BboxOverlay';
 import CameraForm from '../components/CameraForm';
 import type { CameraFormValues } from '../components/CameraForm';
+import ProblemsAreaChart from '../components/ProblemsAreaChart';
+import { useEscape } from '../lib/useEscape';
 
 const RESOLUTION_LABELS: Record<string, string> = {
   confirmed_and_cleared: 'Подтверждено и устранено',
@@ -301,6 +295,7 @@ function EditCameraModal({
   onSaved: () => void;
   onDeleted: () => void;
 }) {
+  useEscape(onClose);
   const handleSubmit = async (values: CameraFormValues) => {
     await updateSite(site.id, {
       name: values.name,
@@ -359,20 +354,7 @@ function ProblemsChart({ title, data }: { title: string; data: ProblemsPoint[] }
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5">
       <h2 className="font-semibold text-gray-900 mb-3">{title}</h2>
-      <ResponsiveContainer width="100%" height={180}>
-        <AreaChart data={data}>
-          <XAxis dataKey="day" tick={{ fontSize: 10 }} />
-          <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-          <Tooltip />
-          <Area
-            type="monotone"
-            dataKey="count"
-            stroke="#3b82f6"
-            fill="#dbeafe"
-            strokeWidth={2}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
+      <ProblemsAreaChart data={data} height={180} xTickFontSize={10} />
     </div>
   );
 }

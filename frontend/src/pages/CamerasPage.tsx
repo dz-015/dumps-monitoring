@@ -7,6 +7,7 @@ import StatusBadge from '../components/StatusBadge';
 import Dropdown from '../components/Dropdown';
 import CameraForm from '../components/CameraForm';
 import type { CameraFormValues } from '../components/CameraForm';
+import { useEscape } from '../lib/useEscape';
 
 const STATUS_FILTERS = [
   { value: 'all', label: 'Все типы' },
@@ -136,6 +137,7 @@ export default function CamerasPage() {
 }
 
 function AddCameraModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+  useEscape(onClose);
   const handleSubmit = async (values: CameraFormValues) => {
     const site = await createSite({
       name: values.name,
