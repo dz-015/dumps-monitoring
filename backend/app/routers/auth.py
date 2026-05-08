@@ -74,6 +74,9 @@ def update_me(
     return current_user
 
 
+_SAFE_AVATAR_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
+
+
 @router.post("/avatar", response_model=UserOut)
 async def upload_avatar(
     file: UploadFile = File(...),
@@ -83,13 +86,29 @@ async def upload_avatar(
     if file.content_type not in ALLOWED_AVATAR_TYPES:
         raise HTTPException(400, f"Allowed image types: {sorted(ALLOWED_AVATAR_TYPES)}")
 
+    body = await file.read()
+    if len(body) > settings.MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            413, f"File too large: {len(body)} bytes (limit {settings.MAX_UPLOAD_BYTES})"
+        )
+
+    # Trust the extension only after sanitising it — Path() strips directory
+    # parts and we whitelist the ones we expect from the allowed image types.
+    ext = Path(file.filename or "").suffix.lower()
+    if ext not in _SAFE_AVATAR_EXTS:
+        ext = ".bin"
+
     avatars_dir = Path(settings.UPLOAD_DIR) / "avatars"
     avatars_dir.mkdir(parents=True, exist_ok=True)
 
-    ext = Path(file.filename or "").suffix.lower() or ".bin"
+    # Drop the previous avatar so old uploads don't accumulate forever.
+    if current_user.avatar_path:
+        old = Path(settings.UPLOAD_DIR) / current_user.avatar_path
+        old.unlink(missing_ok=True)
+
     dest_name = f"{current_user.id}_{uuid.uuid4().hex}{ext}"
     dest_path = avatars_dir / dest_name
-    dest_path.write_bytes(await file.read())
+    dest_path.write_bytes(body)
 
     current_user.avatar_path = f"avatars/{dest_name}"
     db.commit()

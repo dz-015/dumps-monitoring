@@ -12,10 +12,11 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# CORS
+# CORS — explicit origins required for credentialed requests; the "*" + credentials
+# combo is rejected by browsers anyway. Override via CORS_ORIGINS env in prod.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # tighten in production
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

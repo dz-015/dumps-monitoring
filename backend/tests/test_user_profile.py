@@ -79,3 +79,46 @@ def test_post_avatar_rejects_non_image_content_type(
     )
 
     assert resp.status_code == 400
+
+
+def test_post_avatar_rejects_oversize_file(db: Session, client: TestClient) -> None:
+    from app.config import settings
+
+    org = make_org(db, "Org")
+    user = make_user(db, email="u@test.local", org=org)
+    # 1 byte over the limit.
+    oversized = b"\x89PNG\r\n\x1a\n" + b"\x00" * (settings.MAX_UPLOAD_BYTES + 1)
+
+    resp = client.post(
+        "/api/auth/avatar",
+        files={"file": ("big.png", io.BytesIO(oversized), "image/png")},
+        headers=auth_headers(user),
+    )
+
+    assert resp.status_code == 413
+
+
+def test_post_avatar_replaces_previous_file(db: Session, client: TestClient) -> None:
+    from pathlib import Path
+
+    from app.config import settings
+
+    org = make_org(db, "Org")
+    user = make_user(db, email="u@test.local", org=org)
+
+    first = client.post(
+        "/api/auth/avatar",
+        files={"file": ("a.png", io.BytesIO(b"\x89PNG\r\n\x1a\n" + b"\x00" * 32), "image/png")},
+        headers=auth_headers(user),
+    ).json()
+    first_path = Path(settings.UPLOAD_DIR) / first["avatar_path"]
+    assert first_path.exists()
+
+    client.post(
+        "/api/auth/avatar",
+        files={"file": ("b.png", io.BytesIO(b"\x89PNG\r\n\x1a\n" + b"\x00" * 32), "image/png")},
+        headers=auth_headers(user),
+    )
+
+    # First file is gone; only the second remains tracked on the user.
+    assert not first_path.exists()
