@@ -1,56 +1,43 @@
-version: "3.9"
-
 services:
   backend:
     build: ./backend
     container_name: nekobak-backend
     restart: unless-stopped
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     volumes:
-      - ./data/db:/app/data
-      - ./data/uploads:/app/uploads
+      - backend_db:/app/data
+      - backend_uploads:/app/uploads
     environment:
-      - DATABASE_URL=sqlite:///./data/nekobak.db
-      - SECRET_KEY=nekobak-super-secret-change-me
-      - UPLOAD_DIR=/app/uploads
+      DATABASE_URL: ${DATABASE_URL:-sqlite:////app/data/nekobak.db}
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required — generate one with `openssl rand -hex 32` and set it in .env}
+      UPLOAD_DIR: /app/uploads
+      CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost"]}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
+      MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-5242880}
+      RUN_SEED: ${RUN_SEED:-1}
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
   frontend:
     build: ./frontend
     container_name: nekobak-frontend
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "${FRONTEND_PORT:-80}:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
-  # worker:
-  #   build: ./backend
-  #   container_name: nekobak-worker
-  #   restart: unless-stopped
-  #   command: ["python", "-m", "app.worker"]
-  #   volumes:
-  #     - ./data/db:/app/data
-  #     - ./data/uploads:/app/uploads
-  #   environment:
-  #     - DATABASE_URL=sqlite:///./data/nekobak.db
-  #   depends_on:
-  #     - backend
-
-  # max_bot:
-  #   build: ./max_bot
-  #   container_name: nekobak-max-bot
-  #   restart: unless-stopped
-  #   environment:
-  #     - MAX_BOT_TOKEN=changeme
-  #     - API_URL=http://backend:8000
-  #   depends_on:
-  #     - backend
-
-  # osm_tiles:
-  #   image: overv/openstreetmap-tile-server:latest
-  #   container_name: nekobak-osm
-  #   volumes:
-  #     - ./data/osm:/data/database
-  #   ports:
-  #     - "8080:80"
+volumes:
+  backend_db:
+  backend_uploads:
