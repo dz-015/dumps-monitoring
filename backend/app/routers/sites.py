@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session
 from app.auth import get_current_user
 from app.db.database import get_db
 from app.db.models import Alert, Camera, Site, Snapshot, User
-from app.schemas import AlertOut, SiteCreate, SiteOut, SiteUpdate, SnapshotOut
+from app.schemas import AlertListOut, SiteCreate, SiteOut, SiteUpdate, SnapshotOut
+from app.util import zero_filled_days
 
 router = APIRouter(prefix="/api/sites", tags=["sites"])
 
@@ -100,9 +101,9 @@ def delete_site(
     site_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
     site = _get_site_or_404(site_id, db, user)
-    db.query(Snapshot).filter(Snapshot.site_id == site_id).delete()
-    db.query(Alert).filter(Alert.site_id == site_id).delete()
-    db.query(Camera).filter(Camera.site_id == site_id).delete()
+    # ORM delete, not bulk Query.delete(): only the ORM path runs the
+    # `all, delete-orphan` cascades (snapshots→detections, site→cameras/alerts)
+    # and orders deletes by FK dependency (alerts before their snapshots).
     db.delete(site)
     db.commit()
 
@@ -124,25 +125,30 @@ def get_site_snapshots(
     )
 
 
-@router.get("/{site_id}/alerts", response_model=list[AlertOut])
+@router.get("/{site_id}/alerts", response_model=AlertListOut)
 def get_site_alerts(
     site_id: int,
-    limit: int = Query(50, ge=1, le=200),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(10, ge=1, le=100),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """Server-side pagination: the old flat `limit=50` list silently truncated
+    the history while the UI pager presented it as complete (BUG-40)."""
     site = _get_site_or_404(site_id, db, user)
+    q = db.query(Alert).filter(Alert.site_id == site_id)
+    total = q.count()
     alerts = (
-        db.query(Alert)
-        .filter(Alert.site_id == site_id)
-        .order_by(Alert.created_at.desc())
-        .limit(limit)
+        q.order_by(Alert.created_at.desc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
         .all()
     )
-    return [
+    items = [
         {**{c.name: getattr(a, c.name) for c in a.__table__.columns}, "site_name": site.name}
         for a in alerts
     ]
+    return {"items": items, "total": total}
 
 
 @router.get("/{site_id}/problems-week")
@@ -177,4 +183,4 @@ def _site_problems_since(db: Session, site_id: int, days: int) -> list[dict]:
         .order_by(func.date(Alert.created_at))
         .all()
     )
-    return [{"day": str(r.day), "count": r.count} for r in rows]
+    return zero_filled_days(rows, days)

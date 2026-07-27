@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.auth import get_current_user
 from app.db.database import get_db
 from app.db.models import Alert, Site, User
-from app.schemas import ALLOWED_RESOLUTION_REASONS, AlertOut, AlertStatusUpdate
+from app.schemas import ALLOWED_RESOLUTION_REASONS, AlertListOut, AlertOut, AlertStatusUpdate
 
 router = APIRouter(prefix="/api/alerts", tags=["alerts"])
 
@@ -20,7 +20,7 @@ def _scoped(query, user: User):
     )
 
 
-@router.get("")
+@router.get("", response_model=AlertListOut)
 def list_alerts(
     level: str | None = Query(None),
     status: str | None = Query(None),

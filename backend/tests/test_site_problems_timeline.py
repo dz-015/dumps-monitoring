@@ -77,6 +77,42 @@ def test_problems_month_window_extends_back_31_days(
     assert sum(r["count"] for r in month) == 1
 
 
+def test_problems_series_is_zero_filled_and_continuous(
+    db: Session, client: TestClient
+) -> None:
+    """BUG-20: days without alerts must be present with count=0 — otherwise the
+    frontend area chart interpolates across missing days (and a single data
+    point renders a completely blank chart)."""
+    org = make_org(db, "OrgA")
+    user = make_user(db, email="u@test.local", org=org)
+    site = make_site(db, org, "S")
+    today = dt.datetime.now(dt.UTC).replace(hour=12, minute=0, second=0, microsecond=0)
+    db.add(
+        Alert(
+            site_id=site.id,
+            level="overflow",
+            status="new",
+            created_at=today - dt.timedelta(days=3),
+        )
+    )
+    db.commit()
+
+    week = client.get(f"/api/sites/{site.id}/problems-week", headers=auth_headers(user)).json()
+
+    days = [r["day"] for r in week]
+    assert len(days) == 8  # 7-day window inclusive of today
+    assert days == sorted(days)
+    expected = [str((today - dt.timedelta(days=7 - i)).date()) for i in range(8)]
+    assert days == expected  # consecutive calendar days, no gaps
+    counts = {r["day"]: r["count"] for r in week}
+    assert counts[str((today - dt.timedelta(days=3)).date())] == 1
+    assert counts[str(today.date())] == 0
+
+    # Dashboard-wide series must be zero-filled the same way.
+    dash = client.get("/api/dashboard/problems-week", headers=auth_headers(user)).json()
+    assert [r["day"] for r in dash] == expected
+
+
 def test_problems_timeline_returns_404_for_other_org(
     db: Session, client: TestClient
 ) -> None:

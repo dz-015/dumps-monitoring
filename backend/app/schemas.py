@@ -1,6 +1,18 @@
 import datetime as dt
+from typing import Annotated, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, PlainSerializer
+
+
+def _to_utc_iso(v: dt.datetime) -> str:
+    """DB stores naive-UTC datetimes; stamp the offset so browsers don't
+    reinterpret them as local time (BUG-09)."""
+    if v.tzinfo is None:
+        v = v.replace(tzinfo=dt.UTC)
+    return v.isoformat()
+
+
+UTCDateTime = Annotated[dt.datetime, PlainSerializer(_to_utc_iso, return_type=str)]
 
 
 # ── Auth ──────────────────────────────────────────────
@@ -70,9 +82,9 @@ class SiteOut(BaseModel):
     latitude: float | None
     longitude: float | None
     status: str
-    created_at: dt.datetime
+    created_at: UTCDateTime
     camera_count: int = 0
-    last_checked: dt.datetime | None = None
+    last_checked: UTCDateTime | None = None
     active_status: str | None = None
 
     class Config:
@@ -98,8 +110,8 @@ class CameraOut(BaseModel):
     name: str
     rtsp_url: str
     is_active: bool
-    last_checked: dt.datetime | None
-    created_at: dt.datetime
+    last_checked: UTCDateTime | None
+    created_at: UTCDateTime
     site_name: str = ""
 
     class Config:
@@ -114,19 +126,24 @@ class AlertOut(BaseModel):
     level: str
     status: str
     resolution_reason: str | None = None
-    created_at: dt.datetime
-    resolved_at: dt.datetime | None
+    created_at: UTCDateTime
+    resolved_at: UTCDateTime | None
     site_name: str = ""
 
     class Config:
         from_attributes = True
 
 
+class AlertListOut(BaseModel):
+    items: list[AlertOut]
+    total: int
+
+
 ALLOWED_RESOLUTION_REASONS = {"confirmed_and_cleared", "false_alarm", "resolved_externally"}
 
 
 class AlertStatusUpdate(BaseModel):
-    status: str  # new | accepted | resolved
+    status: Literal["new", "accepted", "resolved"]
     # Required when status=resolved, forbidden otherwise. Validated in the router
     # rather than the schema so we can return a specific 400 message.
     resolution_reason: str | None = None
@@ -152,7 +169,7 @@ class SnapshotOut(BaseModel):
     site_id: int
     camera_id: int
     image_path: str
-    taken_at: dt.datetime
+    taken_at: UTCDateTime
     detections: list[DetectionOut] = []
 
     class Config:

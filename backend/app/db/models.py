@@ -68,6 +68,11 @@ class Camera(Base):
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, server_default=func.now())
 
     site = relationship("Site", back_populates="cameras")
+    # Snapshots die with their camera — without this, deleting a camera leaves
+    # snapshot rows with a dangling camera_id (or 500s under FK enforcement).
+    snapshots = relationship(
+        "Snapshot", back_populates="camera", cascade="all, delete-orphan"
+    )
 
 
 class Snapshot(Base):
@@ -80,6 +85,7 @@ class Snapshot(Base):
     taken_at: Mapped[dt.datetime] = mapped_column(DateTime, server_default=func.now())
 
     site = relationship("Site", back_populates="snapshots")
+    camera = relationship("Camera", back_populates="snapshots")
     detections = relationship("Detection", back_populates="snapshot", cascade="all, delete-orphan")
 
 
