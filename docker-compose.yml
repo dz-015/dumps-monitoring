@@ -15,7 +15,11 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost"]}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
       MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-5242880}
-      RUN_SEED: ${RUN_SEED:-1}
+      # Off by default: seeding creates demo accounts — opt in explicitly
+      # and set SEED_ADMIN_PASSWORD/SEED_DEMO_PASSWORD when you do.
+      RUN_SEED: ${RUN_SEED:-0}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-}
+      SEED_DEMO_PASSWORD: ${SEED_DEMO_PASSWORD:-}
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/health"]
       interval: 30s

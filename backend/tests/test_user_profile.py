@@ -10,7 +10,6 @@ import io
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.db.models import User
 from tests.conftest import auth_headers, make_org, make_user
 
 

@@ -2,9 +2,14 @@
 
 Run: `python -m app.seed` from `backend/` (after `alembic upgrade head`).
 Idempotent — re-running is a no-op if any User already exists.
+
+Passwords come from SEED_ADMIN_PASSWORD / SEED_DEMO_PASSWORD env vars; when
+unset, a random password is generated and printed ONCE to stdout. Never
+hardcode credentials here — the repo is public (BUG-02/07/08).
 """
 
 import datetime as dt
+import os
 import random
 import secrets
 
@@ -68,6 +73,16 @@ SITES_DATA = [
 STATUSES = ["clean", "clean", "clean", "clean", "overflow", "contamination", "clean", "overflow"]
 
 
+def _seed_password(env_var: str, account: str) -> str:
+    """Password from env, or a random one printed once so the operator can log in."""
+    pw = os.environ.get(env_var)
+    if pw:
+        return pw
+    pw = secrets.token_urlsafe(12)
+    print(f"{env_var} not set — generated password for {account}: {pw}")
+    return pw
+
+
 def seed_db(db: Session) -> None:
     if db.query(User).first():
         return
@@ -78,14 +93,14 @@ def seed_db(db: Session) -> None:
 
     admin = User(
         email="admin@nekobak.ru",
-        hashed_password=hash_password("admin123"),
+        hashed_password=hash_password(_seed_password("SEED_ADMIN_PASSWORD", "admin@nekobak.ru")),
         full_name="Администратор",
         is_admin=True,
         organization_id=None,
     )
     demo_user = User(
         email="demo@nekobak.ru",
-        hashed_password=hash_password("demo1234"),
+        hashed_password=hash_password(_seed_password("SEED_DEMO_PASSWORD", "demo@nekobak.ru")),
         full_name="Иван Иванович",
         organization_id=demo_org.id,
     )

@@ -52,6 +52,8 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == data.email).first()
     if not user or not verify_password(data.password, user.hashed_password):
         raise HTTPException(401, "Неверный email или пароль")
+    if not user.is_active:
+        raise HTTPException(403, "Аккаунт деактивирован")
     token = create_access_token({"sub": str(user.id)})
     return Token(access_token=token)
 
@@ -86,11 +88,19 @@ async def upload_avatar(
     if file.content_type not in ALLOWED_AVATAR_TYPES:
         raise HTTPException(400, f"Allowed image types: {sorted(ALLOWED_AVATAR_TYPES)}")
 
-    body = await file.read()
-    if len(body) > settings.MAX_UPLOAD_BYTES:
-        raise HTTPException(
-            413, f"File too large: {len(body)} bytes (limit {settings.MAX_UPLOAD_BYTES})"
-        )
+    # Read in chunks and abort as soon as the limit is crossed — a single
+    # `await file.read()` would buffer an arbitrarily large body in RAM
+    # before the size check ever ran.
+    chunks: list[bytes] = []
+    size = 0
+    while chunk := await file.read(64 * 1024):
+        size += len(chunk)
+        if size > settings.MAX_UPLOAD_BYTES:
+            raise HTTPException(
+                413, f"File too large (limit {settings.MAX_UPLOAD_BYTES} bytes)"
+            )
+        chunks.append(chunk)
+    body = b"".join(chunks)
 
     # Trust the extension only after sanitising it — Path() strips directory
     # parts and we whitelist the ones we expect from the allowed image types.
