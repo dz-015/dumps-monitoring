@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+
+# Node.js
+node_modules/
+.next/
+dist/
+build/
+
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker volumes
+minio-data/
+
+# ML/CV
+datasets/
+*.pt
+*.pth
+*.onnx
+*.weights
+*.h5
+runs/
+wandb/
+
+# Media (generated)
+snapshots/
+exports/
+
+# Claude Code (user-specific)
+.claude/settings.local.json
+CLAUDE.local.md
+.mcp.json
+
+# Logs
+*.log
+logs/
