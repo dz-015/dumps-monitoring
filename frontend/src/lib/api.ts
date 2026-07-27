@@ -93,6 +93,9 @@ export const getSiteProblemsWeek = (id: number) =>
 export const getSiteProblemsMonth = (id: number) =>
   request<ProblemsPoint[]>(`/sites/${id}/problems-month`);
 
+// ── Snapshots ─────────────────────────────────────────────────────────
+export const getSnapshot = (id: number) => request<Snapshot>(`/snapshots/${id}`);
+
 // ── Cameras ───────────────────────────────────────────────────────────
 export const getCameras = () => request<Camera[]>('/cameras');
 export const createCamera = (data: CameraCreate) =>

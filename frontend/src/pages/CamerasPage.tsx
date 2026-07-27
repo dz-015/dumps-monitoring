@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Pencil, X, Plus } from 'lucide-react';
-import { getSites, createSite, createCamera, deleteSite } from '../lib/api';
-import type { Site } from '../lib/types';
+import { getSites, getCameras, createSite, createCamera, deleteSite } from '../lib/api';
+import type { Camera, Site } from '../lib/types';
 import StatusBadge from '../components/StatusBadge';
 import Dropdown from '../components/Dropdown';
 import CameraForm from '../components/CameraForm';
 import type { CameraFormValues } from '../components/CameraForm';
+import EditCameraModal from '../components/EditCameraModal';
 import { ErrorBanner } from '../components/LoadError';
 import { useEscape } from '../lib/useEscape';
 
@@ -23,6 +24,11 @@ export default function CamerasPage() {
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [error, setError] = useState('');
+  // Pencil-edit state: the modal needs the site's camera record first (BUG-24),
+  // so opening goes through a short loading step.
+  const [editingSite, setEditingSite] = useState<Site | null>(null);
+  const [editingCamera, setEditingCamera] = useState<Camera | null>(null);
+  const [editLoadingId, setEditLoadingId] = useState<number | null>(null);
   const navigate = useNavigate();
 
   const load = useCallback(() => {
@@ -36,6 +42,17 @@ export default function CamerasPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const handleEditClick = (site: Site) => {
+    setEditLoadingId(site.id);
+    getCameras()
+      .then((cams) => {
+        setEditingCamera(cams.find((c) => c.site_id === site.id) ?? null);
+        setEditingSite(site);
+      })
+      .catch(() => setError('Не удалось загрузить данные камеры'))
+      .finally(() => setEditLoadingId(null));
+  };
 
   const filtered = sites
     .filter((s) => filter === 'all' || (s.active_status ?? s.status) === filter)
@@ -114,9 +131,11 @@ export default function CamerasPage() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      navigate(`/cameras/${s.id}`);
+                      handleEditClick(s);
                     }}
-                    className="text-gray-400 hover:text-gray-700"
+                    disabled={editLoadingId === s.id}
+                    aria-label={`Изменить ${s.name}`}
+                    className="text-gray-400 hover:text-gray-700 disabled:opacity-40"
                   >
                     <Pencil size={14} />
                   </button>
@@ -139,6 +158,22 @@ export default function CamerasPage() {
           onClose={() => setModalOpen(false)}
           onCreated={() => {
             setModalOpen(false);
+            load();
+          }}
+        />
+      )}
+
+      {editingSite && (
+        <EditCameraModal
+          site={editingSite}
+          camera={editingCamera}
+          onClose={() => setEditingSite(null)}
+          onSaved={() => {
+            setEditingSite(null);
+            load();
+          }}
+          onDeleted={() => {
+            setEditingSite(null);
             load();
           }}
         />

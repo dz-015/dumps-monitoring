@@ -5,9 +5,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
+  MapPin,
   MinusCircle,
   Pencil,
-  X,
   XCircle,
 } from 'lucide-react';
 import {
@@ -16,20 +16,15 @@ import {
   getSiteAlerts,
   getSiteProblemsWeek,
   getSiteProblemsMonth,
-  updateSite,
-  updateCamera,
-  createCamera,
-  deleteSite,
   getCameras,
 } from '../lib/api';
 import type { Alert, Camera, ProblemsPoint, Site, Snapshot } from '../lib/types';
 import StatusBadge from '../components/StatusBadge';
 import BboxOverlay from '../components/BboxOverlay';
-import CameraForm from '../components/CameraForm';
-import type { CameraFormValues } from '../components/CameraForm';
+import EditCameraModal from '../components/EditCameraModal';
 import ProblemsAreaChart from '../components/ProblemsAreaChart';
+import SiteMiniMap from '../components/SiteMiniMap';
 import LoadError, { ErrorBanner } from '../components/LoadError';
-import { useEscape } from '../lib/useEscape';
 import { useRequestGuard } from '../lib/useRequestGuard';
 
 const RESOLUTION_LABELS: Record<string, string> = {
@@ -247,8 +242,9 @@ export default function SiteDetailPage() {
       )}
       {partialError && <ErrorBanner message={partialError} onRetry={retryAll} />}
 
-      {/* Snapshot viewer with carousel */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+      {/* Snapshot viewer + location, side by side */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="col-span-2 bg-white rounded-xl border border-gray-200 p-5">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold text-gray-900">Последний снимок</h2>
           {selectedSnap && (
@@ -302,6 +298,32 @@ export default function SiteDetailPage() {
         ) : (
           <div className="text-gray-400 text-sm py-12 text-center">Нет снимков</div>
         )}
+      </div>
+
+      {/* Location card (Arseniy 2026-07-27: местоположение прямо на карточке) */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <h2 className="font-semibold text-gray-900 mb-3 inline-flex items-center gap-1.5">
+          <MapPin size={16} className="text-sky-500" />
+          Местоположение
+        </h2>
+        {site.latitude !== null && site.longitude !== null ? (
+          <>
+            <SiteMiniMap
+              latitude={site.latitude}
+              longitude={site.longitude}
+              status={site.active_status ?? site.status}
+              height={260}
+            />
+            <div className="text-xs text-gray-400 mt-2">
+              {site.latitude.toFixed(5)}, {site.longitude.toFixed(5)}
+            </div>
+          </>
+        ) : (
+          <div className="text-gray-400 text-sm py-12 text-center">
+            Координаты не заданы — добавьте их через «Изменить»
+          </div>
+        )}
+      </div>
       </div>
 
       {/* Two charts side by side */}
@@ -388,82 +410,6 @@ export default function SiteDetailPage() {
           onDeleted={() => navigate('/cameras')}
         />
       )}
-    </div>
-  );
-}
-
-function EditCameraModal({
-  site,
-  camera,
-  onClose,
-  onSaved,
-  onDeleted,
-}: {
-  site: Site;
-  camera: Camera | null;
-  onClose: () => void;
-  onSaved: () => void;
-  onDeleted: () => void;
-}) {
-  useEscape(onClose);
-  const handleSubmit = async (values: CameraFormValues) => {
-    await updateSite(site.id, {
-      name: values.name,
-      address: values.address,
-      latitude: values.latitude,
-      longitude: values.longitude,
-    });
-    if (camera) {
-      await updateCamera(camera.id, {
-        name: values.name,
-        rtsp_url: values.rtsp_url,
-      });
-    } else if (values.rtsp_url.trim()) {
-      // Site had no camera yet — create one instead of silently discarding
-      // the RTSP URL the user typed (BUG-24).
-      await createCamera({
-        site_id: site.id,
-        name: values.name,
-        rtsp_url: values.rtsp_url,
-      });
-    }
-    onSaved();
-  };
-
-  const handleDelete = async () => {
-    await deleteSite(site.id);
-    onDeleted();
-  };
-
-  return (
-    <div
-      className="fixed inset-0 bg-black/30 flex items-center justify-center z-[1000] p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-semibold text-gray-900">Изменить камеру</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-700">
-            <X size={18} />
-          </button>
-        </div>
-        <CameraForm
-          submitLabel="Сохранить"
-          initial={{
-            name: site.name,
-            address: site.address,
-            rtsp_url: camera?.rtsp_url ?? '',
-            latitude: site.latitude,
-            longitude: site.longitude,
-          }}
-          onCancel={onClose}
-          onSubmit={handleSubmit}
-          onDelete={handleDelete}
-        />
-      </div>
     </div>
   );
 }

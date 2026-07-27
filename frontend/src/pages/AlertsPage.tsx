@@ -1,9 +1,11 @@
 import { Fragment, useCallback, useEffect, useState } from 'react';
 import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
-import { getAlerts, updateAlert } from '../lib/api';
-import type { Alert, ResolutionReason } from '../lib/types';
+import { getAlerts, getSites, getSnapshot, updateAlert } from '../lib/api';
+import type { Alert, ResolutionReason, Site, Snapshot } from '../lib/types';
 import StatusBadge from '../components/StatusBadge';
+import BboxOverlay from '../components/BboxOverlay';
 import Dropdown from '../components/Dropdown';
+import SiteMiniMap from '../components/SiteMiniMap';
 import { ErrorBanner } from '../components/LoadError';
 import { useRequestGuard } from '../lib/useRequestGuard';
 
@@ -59,7 +61,34 @@ export default function AlertsPage() {
   const [expanded, setExpanded] = useState<number | null>(null);
   const [resolvingId, setResolvingId] = useState<number | null>(null);
   const [error, setError] = useState('');
+  // Site coords for the mini-map in the expanded row; keyed by site_id.
+  const [sitesById, setSitesById] = useState<Record<number, Site>>({});
+  // Snapshot cache for expanded alerts, keyed by snapshot_id.
+  const [snapshotCache, setSnapshotCache] = useState<
+    Record<number, Snapshot | 'loading' | 'error'>
+  >({});
   const begin = useRequestGuard();
+
+  useEffect(() => {
+    // Non-fatal: without sites the expanded row just skips the mini-map.
+    getSites()
+      .then((sites) => {
+        setSitesById(Object.fromEntries(sites.map((s) => [s.id, s])));
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleToggleExpand = (a: Alert) => {
+    const opening = expanded !== a.id;
+    setExpanded(opening ? a.id : null);
+    if (opening && a.snapshot_id && !snapshotCache[a.snapshot_id]) {
+      const snapId = a.snapshot_id;
+      setSnapshotCache((c) => ({ ...c, [snapId]: 'loading' }));
+      getSnapshot(snapId)
+        .then((snap) => setSnapshotCache((c) => ({ ...c, [snapId]: snap })))
+        .catch(() => setSnapshotCache((c) => ({ ...c, [snapId]: 'error' })));
+    }
+  };
 
   const load = useCallback(() => {
     const fresh = begin();
@@ -182,7 +211,7 @@ export default function AlertsPage() {
                 <Fragment key={a.id}>
                   <tr
                     className="border-b border-gray-50 hover:bg-gray-50 cursor-pointer"
-                    onClick={() => setExpanded(open ? null : a.id)}
+                    onClick={() => handleToggleExpand(a)}
                   >
                     <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
                       {formatDate(a.created_at)}
@@ -203,6 +232,14 @@ export default function AlertsPage() {
                   {open && (
                     <tr className="bg-gray-50/60 border-b border-gray-100">
                       <td colSpan={5} className="px-6 py-4 text-sm text-gray-700">
+                        {/* Место и снимок проблемы (Арсений 2026-07-27) */}
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                          <AlertLocation site={sitesById[a.site_id]} />
+                          <AlertSnapshot
+                            snapshotId={a.snapshot_id}
+                            cached={a.snapshot_id ? snapshotCache[a.snapshot_id] : undefined}
+                          />
+                        </div>
                         <div className="flex items-start gap-8">
                           <div>
                             <div className="text-xs text-gray-500 mb-0.5">Создан</div>
@@ -300,6 +337,52 @@ export default function AlertsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function AlertLocation({ site }: { site?: Site }) {
+  if (!site || site.latitude === null || site.longitude === null) {
+    return (
+      <div className="rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-400 text-xs h-[220px]">
+        Координаты площадки не заданы
+      </div>
+    );
+  }
+  return (
+    <SiteMiniMap
+      latitude={site.latitude}
+      longitude={site.longitude}
+      status={site.active_status ?? site.status}
+      height={220}
+    />
+  );
+}
+
+function AlertSnapshot({
+  snapshotId,
+  cached,
+}: {
+  snapshotId: number | null;
+  cached?: Snapshot | 'loading' | 'error';
+}) {
+  const placeholder = (text: string) => (
+    <div className="rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-400 text-xs h-[220px] text-center px-4">
+      {text}
+    </div>
+  );
+  if (!snapshotId) {
+    // Seeded alerts (and alerts until real inference lands) carry no snapshot.
+    return placeholder('Снимок не сохранён для этого оповещения');
+  }
+  if (!cached || cached === 'loading') return placeholder('Загрузка снимка…');
+  if (cached === 'error') return placeholder('Не удалось загрузить снимок');
+  return (
+    <BboxOverlay
+      imageUrl={`/uploads/${cached.image_path}`}
+      detections={cached.detections || []}
+      width={340}
+      height={220}
+    />
   );
 }
 
