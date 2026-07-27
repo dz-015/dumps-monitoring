@@ -16,8 +16,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # App code + entrypoint script.
 COPY --chown=app:app . .
+# /app/data is the mountpoint for the backend_db volume — it must exist and be
+# writable by `app` BEFORE the volume is mounted, or Docker creates it root-owned
+# and SQLite cannot create the database file on first boot.
 RUN chmod +x /app/docker-entrypoint.sh \
-    && mkdir -p /app/uploads \
+    && mkdir -p /app/uploads /app/data \
     && chown -R app:app /app
 
 USER app

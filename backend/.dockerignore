@@ -17,7 +17,6 @@ uploads
 .gitignore
 .dockerignore
 Dockerfile
-docker-entrypoint.sh
 tests
 README*
 *.md
