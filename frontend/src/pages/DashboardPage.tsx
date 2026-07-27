@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bell, CheckCircle2, ArrowUpRight } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { getDashboardStats, getProblemsWeek, getProblemsMonth } from '../lib/api';
 import type { DashboardStats, ProblemsPoint } from '../lib/types';
 import ProblemsAreaChart from '../components/ProblemsAreaChart';
+import LoadError from '../components/LoadError';
 import sitesIcon from '../assets/kpi-sites.svg';
 import camerasIcon from '../assets/kpi-cameras.svg';
 
@@ -23,14 +24,27 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [weekData, setWeekData] = useState<ProblemsPoint[]>([]);
   const [monthData, setMonthData] = useState<ProblemsPoint[]>([]);
+  const [error, setError] = useState('');
 
-  useEffect(() => {
-    getDashboardStats().then(setStats);
-    getProblemsWeek().then(setWeekData);
-    getProblemsMonth().then(setMonthData);
+  const load = useCallback(() => {
+    Promise.all([getDashboardStats(), getProblemsWeek(), getProblemsMonth()])
+      .then(([s, w, m]) => {
+        setStats(s);
+        setWeekData(w);
+        setMonthData(m);
+        setError('');
+      })
+      .catch(() => setError('Не удалось загрузить данные панели'));
   }, []);
 
-  if (!stats) return <div className="text-gray-400 p-4">Загрузка...</div>;
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  if (!stats) {
+    if (error) return <LoadError message={error} onRetry={load} />;
+    return <div className="text-gray-400 p-4">Загрузка...</div>;
+  }
 
   const pieData = Object.entries(stats.status_counts).map(([k, v]) => ({
     name: PIE_LABELS[k] || k,

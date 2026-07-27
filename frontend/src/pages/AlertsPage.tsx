@@ -4,6 +4,8 @@ import { getAlerts, updateAlert } from '../lib/api';
 import type { Alert, ResolutionReason } from '../lib/types';
 import StatusBadge from '../components/StatusBadge';
 import Dropdown from '../components/Dropdown';
+import { ErrorBanner } from '../components/LoadError';
+import { useRequestGuard } from '../lib/useRequestGuard';
 
 const RESOLUTION_OPTIONS: { value: ResolutionReason; label: string; hint: string }[] = [
   {
@@ -34,6 +36,13 @@ const PERIOD_OPTIONS = [
 
 function periodToSince(days: string): string | undefined {
   if (!days) return undefined;
+  if (days === '1') {
+    // "За сегодня" is a calendar-day claim: since local midnight, not a
+    // rolling 24-hour window (BUG-38).
+    const midnight = new Date();
+    midnight.setHours(0, 0, 0, 0);
+    return midnight.toISOString().replace(/\.\d{3}Z$/, 'Z');
+  }
   const n = Number(days);
   const since = new Date(Date.now() - n * 24 * 60 * 60 * 1000);
   // Z-suffix avoids the "+00:00" → space pitfall in URL query parsing.
@@ -49,19 +58,35 @@ export default function AlertsPage() {
   const [periodFilter, setPeriodFilter] = useState('');
   const [expanded, setExpanded] = useState<number | null>(null);
   const [resolvingId, setResolvingId] = useState<number | null>(null);
+  const [error, setError] = useState('');
+  const begin = useRequestGuard();
 
   const load = useCallback(() => {
+    const fresh = begin();
     getAlerts({
       level: levelFilter || undefined,
       status: statusFilter || undefined,
       since: periodToSince(periodFilter),
       page,
       per_page: PER_PAGE,
-    }).then((res) => {
-      setAlerts(res.items);
-      setTotal(res.total);
-    });
-  }, [page, levelFilter, statusFilter, periodFilter]);
+    })
+      .then((res) => {
+        if (!fresh()) return; // stale response for older filters/page (BUG-21)
+        // A mutation can shrink the filtered set below the current page —
+        // clamp instead of showing a false empty state (BUG-36/37).
+        const lastPage = Math.max(1, Math.ceil(res.total / PER_PAGE));
+        if (page > lastPage) {
+          setPage(lastPage);
+          return; // page change re-triggers load
+        }
+        setError('');
+        setAlerts(res.items);
+        setTotal(res.total);
+      })
+      .catch(() => {
+        if (fresh()) setError('Не удалось загрузить оповещения');
+      });
+  }, [page, levelFilter, statusFilter, periodFilter, begin]);
 
   useEffect(() => {
     load();
@@ -70,13 +95,24 @@ export default function AlertsPage() {
   const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
 
   const handleAccept = async (id: number) => {
-    await updateAlert(id, { status: 'accepted' });
+    try {
+      await updateAlert(id, { status: 'accepted' });
+    } catch {
+      setError('Не удалось принять оповещение');
+      return;
+    }
     load();
   };
 
   const handleResolve = async (id: number, reason: ResolutionReason) => {
-    await updateAlert(id, { status: 'resolved', resolution_reason: reason });
-    setResolvingId(null);
+    try {
+      await updateAlert(id, { status: 'resolved', resolution_reason: reason });
+    } catch {
+      setError('Не удалось отметить оповещение решённым');
+      return;
+    } finally {
+      setResolvingId(null);
+    }
     load();
   };
 
@@ -125,6 +161,8 @@ export default function AlertsPage() {
           ariaLabel="Фильтр по периоду"
         />
       </div>
+
+      {error && <ErrorBanner message={error} onRetry={load} />}
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <table className="w-full text-sm">

@@ -23,6 +23,9 @@ export default function ProfileModal({ user, onClose }: Props) {
 
   const handleAvatarPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    // Reset the input so picking a file with the same name fires `change`
+    // again — the natural retry after a failed upload (BUG-35).
+    e.target.value = '';
     if (!file) return;
     setError('');
     try {

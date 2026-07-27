@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Pencil, X, Plus } from 'lucide-react';
 import { getSites, createSite, createCamera, deleteSite } from '../lib/api';
@@ -7,6 +7,7 @@ import StatusBadge from '../components/StatusBadge';
 import Dropdown from '../components/Dropdown';
 import CameraForm from '../components/CameraForm';
 import type { CameraFormValues } from '../components/CameraForm';
+import { ErrorBanner } from '../components/LoadError';
 import { useEscape } from '../lib/useEscape';
 
 const STATUS_FILTERS = [
@@ -21,12 +22,20 @@ export default function CamerasPage() {
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const load = () => getSites().then(setSites);
+  const load = useCallback(() => {
+    getSites()
+      .then((s) => {
+        setSites(s);
+        setError('');
+      })
+      .catch(() => setError('Не удалось загрузить список камер'));
+  }, []);
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   const filtered = sites
     .filter((s) => filter === 'all' || (s.active_status ?? s.status) === filter)
@@ -40,6 +49,8 @@ export default function CamerasPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-4">Камеры</h1>
+
+      {error && <ErrorBanner message={error} onRetry={load} />}
 
       <div className="flex items-center gap-3 mb-4">
         <Dropdown

@@ -1,6 +1,13 @@
-import { render } from '@testing-library/react';
+import { fireEvent, render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import BboxOverlay from './BboxOverlay';
+
+function loadImage(container: HTMLElement, naturalWidth: number, naturalHeight: number) {
+  const img = container.querySelector('img')!;
+  Object.defineProperty(img, 'naturalWidth', { value: naturalWidth, configurable: true });
+  Object.defineProperty(img, 'naturalHeight', { value: naturalHeight, configurable: true });
+  fireEvent.load(img);
+}
 
 describe('BboxOverlay', () => {
   it('renders one rect per detection (plus background label rects)', () => {
@@ -35,6 +42,40 @@ describe('BboxOverlay', () => {
     expect(bboxRect!.getAttribute('y')).toBe('40');
     expect(bboxRect!.getAttribute('width')).toBe('20');
     expect(bboxRect!.getAttribute('height')).toBe('20');
+  });
+
+  it('maps boxes onto the letterboxed image rect, not the whole container (BUG-19)', () => {
+    const { container } = render(
+      <BboxOverlay
+        imageUrl="/fake.jpg"
+        detections={[{ class_name: 'metal_ok', confidence: 1, x: 0.5, y: 0.5, w: 0.2, h: 0.2 }]}
+        width={100}
+        height={100}
+      />
+    );
+    // A 2:1 image inside a 1:1 container renders at 100×50 with 25px bars
+    // top and bottom.
+    loadImage(container, 200, 100);
+    const bboxRect = container.querySelector('rect[fill="none"]') as SVGRectElement;
+    expect(bboxRect.getAttribute('x')).toBe('40'); // (0.5-0.1) * 100 + 0
+    expect(bboxRect.getAttribute('y')).toBe('45'); // (0.5-0.1) * 50 + 25
+    expect(bboxRect.getAttribute('width')).toBe('20'); // 0.2 * 100
+    expect(bboxRect.getAttribute('height')).toBe('10'); // 0.2 * 50
+  });
+
+  it('a top-edge box hugs the top of the image content, not the container', () => {
+    const { container } = render(
+      <BboxOverlay
+        imageUrl="/fake.jpg"
+        detections={[{ class_name: 'metal_ok', confidence: 1, x: 0.5, y: 0.05, w: 0.2, h: 0.1 }]}
+        width={100}
+        height={100}
+      />
+    );
+    loadImage(container, 200, 100);
+    const bboxRect = container.querySelector('rect[fill="none"]') as SVGRectElement;
+    // Image content starts at y=25; box top = 25 + (0.05-0.05)*50 = 25, not 0.
+    expect(bboxRect.getAttribute('y')).toBe('25');
   });
 
   it('applies red stroke for *_overflow, green for *_ok, orange for ground_trash', () => {

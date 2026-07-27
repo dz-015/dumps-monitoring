@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import { Link } from 'react-router-dom';
 import { getSites } from '../lib/api';
 import type { Site } from '../lib/types';
 import StatusBadge from '../components/StatusBadge';
+import { ErrorBanner } from '../components/LoadError';
 import 'leaflet/dist/leaflet.css';
 import pinGreen from '../assets/map-pins/green.svg';
 import pinYellow from '../assets/map-pins/yellow.svg';
@@ -32,15 +33,27 @@ function pinIcon(status: string): L.Icon {
 
 export default function MapPage() {
   const [sites, setSites] = useState<Site[]>([]);
+  const [error, setError] = useState('');
+
+  const load = useCallback(() => {
+    getSites()
+      .then((s) => {
+        setSites(s);
+        setError('');
+      })
+      .catch(() => setError('Не удалось загрузить площадки'));
+  }, []);
 
   useEffect(() => {
-    getSites().then(setSites);
-  }, []);
+    load();
+  }, [load]);
 
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900">Карта</h1>
       <p className="text-sm text-gray-500 mb-4">Расположение контейнерных площадок</p>
+
+      {error && <ErrorBanner message={error} onRetry={load} />}
 
       <div
         className="bg-white rounded-xl border border-gray-200 overflow-hidden"

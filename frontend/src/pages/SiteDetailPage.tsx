@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   CheckCircle2,
@@ -18,6 +18,7 @@ import {
   getSiteProblemsMonth,
   updateSite,
   updateCamera,
+  createCamera,
   deleteSite,
   getCameras,
 } from '../lib/api';
@@ -27,7 +28,9 @@ import BboxOverlay from '../components/BboxOverlay';
 import CameraForm from '../components/CameraForm';
 import type { CameraFormValues } from '../components/CameraForm';
 import ProblemsAreaChart from '../components/ProblemsAreaChart';
+import LoadError, { ErrorBanner } from '../components/LoadError';
 import { useEscape } from '../lib/useEscape';
+import { useRequestGuard } from '../lib/useRequestGuard';
 
 const RESOLUTION_LABELS: Record<string, string> = {
   confirmed_and_cleared: 'Подтверждено и устранено',
@@ -67,54 +70,149 @@ function ResolutionCell({ reason }: { reason: string | null }) {
 
 const ALERTS_PER_PAGE = 10;
 
+type CameraLoadState = 'loading' | 'ready' | 'error';
+
 export default function SiteDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [site, setSite] = useState<Site | null>(null);
   const [siteCamera, setSiteCamera] = useState<Camera | null>(null);
+  const [cameraState, setCameraState] = useState<CameraLoadState>('loading');
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [alertsTotal, setAlertsTotal] = useState(0);
   const [weekData, setWeekData] = useState<ProblemsPoint[]>([]);
   const [monthData, setMonthData] = useState<ProblemsPoint[]>([]);
   const [snapIndex, setSnapIndex] = useState(0);
   const [alertsPage, setAlertsPage] = useState(1);
   const [editOpen, setEditOpen] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const [partialError, setPartialError] = useState('');
+  const begin = useRequestGuard();
+  const beginAlerts = useRequestGuard();
 
-  const reload = () => {
-    if (!id) return;
-    const numId = Number(id);
-    getSite(numId).then(setSite);
-    getCameras().then((cams) => {
-      setSiteCamera(cams.find((c) => c.site_id === numId) ?? null);
-    });
-    getSiteSnapshots(numId).then(setSnapshots);
-    getSiteAlerts(numId).then(setAlerts);
-    getSiteProblemsWeek(numId).then(setWeekData);
-    getSiteProblemsMonth(numId).then(setMonthData);
-  };
-
-  useEffect(() => {
-    // Reset paginations when switching between sites — otherwise the previous
-    // site's index can land out-of-bounds on the new (potentially shorter)
-    // snapshots / alerts list.
+  // Reset paginations when switching between sites — render-phase adjustment
+  // (not a sync setState inside an effect), otherwise the previous site's
+  // index can land out-of-bounds on the new (potentially shorter) list.
+  const [prevId, setPrevId] = useState(id);
+  if (id !== prevId) {
+    setPrevId(id);
     setSnapIndex(0);
     setAlertsPage(1);
-    reload();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+    setCameraState('loading');
+    setLoadError('');
+    setPartialError('');
+  }
 
-  if (!site) return <div className="text-gray-400 p-4">Загрузка...</div>;
+  // The route keeps this component mounted when only :id changes, so every
+  // response is guarded against out-of-order arrival — a slow response for
+  // the previous site must never clobber the current one (BUG-10).
+  const reload = useCallback(() => {
+    if (!id) return;
+    const numId = Number(id);
+    const fresh = begin();
+    getSite(numId)
+      .then((s) => {
+        if (!fresh()) return;
+        setSite(s);
+        setLoadError('');
+      })
+      .catch(() => {
+        if (fresh()) setLoadError('Не удалось загрузить площадку');
+      });
+    getCameras()
+      .then((cams) => {
+        if (!fresh()) return;
+        setSiteCamera(cams.find((c) => c.site_id === numId) ?? null);
+        setCameraState('ready');
+      })
+      .catch(() => {
+        if (fresh()) setCameraState('error');
+      });
+    getSiteSnapshots(numId)
+      .then((snaps) => {
+        if (fresh()) setSnapshots(snaps);
+      })
+      .catch(() => {
+        if (fresh()) setPartialError('Часть данных не загрузилась');
+      });
+    getSiteProblemsWeek(numId)
+      .then((d) => {
+        if (fresh()) setWeekData(d);
+      })
+      .catch(() => {
+        if (fresh()) setPartialError('Часть данных не загрузилась');
+      });
+    getSiteProblemsMonth(numId)
+      .then((d) => {
+        if (fresh()) setMonthData(d);
+      })
+      .catch(() => {
+        if (fresh()) setPartialError('Часть данных не загрузилась');
+      });
+  }, [id, begin]);
+
+  // Server-side pagination of the alert history (BUG-40) — a separate loader
+  // so flipping pages doesn't refetch the whole site.
+  const loadAlerts = useCallback(() => {
+    if (!id) return;
+    const numId = Number(id);
+    const fresh = beginAlerts();
+    getSiteAlerts(numId, alertsPage, ALERTS_PER_PAGE)
+      .then((res) => {
+        if (!fresh()) return;
+        const lastPage = Math.max(1, Math.ceil(res.total / ALERTS_PER_PAGE));
+        if (alertsPage > lastPage) {
+          setAlertsPage(lastPage);
+          return;
+        }
+        setAlerts(res.items);
+        setAlertsTotal(res.total);
+      })
+      .catch(() => {
+        if (fresh()) setPartialError('Часть данных не загрузилась');
+      });
+  }, [id, alertsPage, beginAlerts]);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
+
+  useEffect(() => {
+    loadAlerts();
+  }, [loadAlerts]);
+
+  // Event-handler entry point: clears error state before refetching (effects
+  // themselves must stay free of sync setState).
+  const retryAll = () => {
+    setLoadError('');
+    setPartialError('');
+    setCameraState('loading');
+    reload();
+    loadAlerts();
+  };
+
+  if (!site) {
+    if (loadError) {
+      return (
+        <div>
+          <Link to="/cameras" className="text-gray-400 hover:text-gray-600 text-sm">
+            ← Камеры
+          </Link>
+          <LoadError message={loadError} onRetry={retryAll} />
+        </div>
+      );
+    }
+    return <div className="text-gray-400 p-4">Загрузка...</div>;
+  }
 
   // Clamp snapIndex against the current snapshot list length — guards a brief
   // window after `reload` where snapshots[] is repopulating.
   const safeSnapIndex = Math.min(snapIndex, Math.max(0, snapshots.length - 1));
   const selectedSnap = snapshots[safeSnapIndex] ?? null;
 
-  const totalAlertPages = Math.max(1, Math.ceil(alerts.length / ALERTS_PER_PAGE));
-  const pageAlerts = alerts.slice(
-    (alertsPage - 1) * ALERTS_PER_PAGE,
-    alertsPage * ALERTS_PER_PAGE
-  );
+  const totalAlertPages = Math.max(1, Math.ceil(alertsTotal / ALERTS_PER_PAGE));
+  const pageAlerts = alerts;
 
   return (
     <div>
@@ -126,16 +224,28 @@ export default function SiteDetailPage() {
       <div className="flex items-center gap-3 mb-1">
         <h1 className="text-2xl font-bold text-gray-900">{site.name}</h1>
         <StatusBadge value={site.active_status ?? site.status} />
+        {/* Editing needs the camera record: opening the form before it loads
+            would silently drop or overwrite the RTSP URL (BUG-24). */}
         <button
           type="button"
           onClick={() => setEditOpen(true)}
-          className="ml-auto inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50"
+          disabled={cameraState !== 'ready'}
+          title={cameraState === 'loading' ? 'Данные камеры загружаются…' : undefined}
+          className="ml-auto inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Pencil size={14} />
           Изменить
         </button>
       </div>
       <p className="text-sm text-gray-500 mb-6">{site.address}</p>
+
+      {cameraState === 'error' && (
+        <ErrorBanner
+          message="Не удалось загрузить данные камеры — редактирование недоступно"
+          onRetry={retryAll}
+        />
+      )}
+      {partialError && <ErrorBanner message={partialError} onRetry={retryAll} />}
 
       {/* Snapshot viewer with carousel */}
       <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
@@ -235,7 +345,7 @@ export default function SiteDetailPage() {
                 </td>
               </tr>
             ))}
-            {alerts.length === 0 && (
+            {alertsTotal === 0 && (
               <tr>
                 <td colSpan={4} className="px-4 py-10 text-center text-gray-400 text-sm">
                   Нет оповещений
@@ -245,7 +355,7 @@ export default function SiteDetailPage() {
           </tbody>
         </table>
 
-        {alerts.length > ALERTS_PER_PAGE && (
+        {alertsTotal > ALERTS_PER_PAGE && (
           <div className="flex items-center justify-end gap-1 px-4 py-3 border-t border-gray-100 text-sm">
             <PagerButton
               disabled={alertsPage <= 1}
@@ -273,7 +383,7 @@ export default function SiteDetailPage() {
           onClose={() => setEditOpen(false)}
           onSaved={() => {
             setEditOpen(false);
-            reload();
+            retryAll();
           }}
           onDeleted={() => navigate('/cameras')}
         />
@@ -305,6 +415,14 @@ function EditCameraModal({
     });
     if (camera) {
       await updateCamera(camera.id, {
+        name: values.name,
+        rtsp_url: values.rtsp_url,
+      });
+    } else if (values.rtsp_url.trim()) {
+      // Site had no camera yet — create one instead of silently discarding
+      // the RTSP URL the user typed (BUG-24).
+      await createCamera({
+        site_id: site.id,
         name: values.name,
         rtsp_url: values.rtsp_url,
       });

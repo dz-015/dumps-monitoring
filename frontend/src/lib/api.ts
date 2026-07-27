@@ -86,7 +86,8 @@ export const updateSite = (id: number, data: Partial<SiteCreate>) =>
 export const deleteSite = (id: number) => request<void>(`/sites/${id}`, { method: 'DELETE' });
 export const getSiteSnapshots = (id: number, limit = 20) =>
   request<Snapshot[]>(`/sites/${id}/snapshots?limit=${limit}`);
-export const getSiteAlerts = (id: number) => request<Alert[]>(`/sites/${id}/alerts`);
+export const getSiteAlerts = (id: number, page = 1, perPage = 10) =>
+  request<AlertsPage>(`/sites/${id}/alerts?page=${page}&per_page=${perPage}`);
 export const getSiteProblemsWeek = (id: number) =>
   request<ProblemsPoint[]>(`/sites/${id}/problems-week`);
 export const getSiteProblemsMonth = (id: number) =>
