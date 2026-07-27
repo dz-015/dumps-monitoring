@@ -1,0 +1,12 @@
+[
+  {
+    "name": "Camera 1",
+    "rtsp_url": "rtsp://user:password@203.0.113.10:554/stream1",
+    "capture_interval_minutes": 60
+  },
+  {
+    "name": "Camera 2",
+    "rtsp_url": "rtsp://user:password@203.0.113.11:554/stream1",
+    "capture_interval_minutes": 60
+  }
+]
