@@ -69,14 +69,14 @@ export default function CamerasPage() {
 
       {error && <ErrorBanner message={error} onRetry={load} />}
 
-      <div className="flex items-center gap-3 mb-4">
+      <div className="flex flex-wrap items-center gap-3 mb-4">
         <Dropdown
           value={filter}
           onChange={setFilter}
           options={STATUS_FILTERS}
           ariaLabel="Фильтр по типу"
         />
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative flex-1 max-w-sm min-w-[160px]">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             value={search}
@@ -93,7 +93,9 @@ export default function CamerasPage() {
         </button>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      {/* На телефоне таблица уходит в горизонтальную прокрутку — это админский
+          экран, карточный вид ему не нужен */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100 text-left text-gray-500 text-xs uppercase tracking-wide">
@@ -196,6 +198,7 @@ function AddCameraModal({ onClose, onCreated }: { onClose: () => void; onCreated
         site_id: site.id,
         name: values.name,
         rtsp_url: values.rtsp_url,
+        external_key: values.external_key || null,
       });
     } catch (err) {
       // Roll the orphan site back so the user doesn't see a half-created

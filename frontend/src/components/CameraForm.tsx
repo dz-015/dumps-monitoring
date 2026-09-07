@@ -6,6 +6,7 @@ export interface CameraFormValues {
   name: string;
   address: string;
   rtsp_url: string;
+  external_key: string;
   latitude: number | null;
   longitude: number | null;
 }
@@ -28,6 +29,7 @@ export default function CameraForm({
   const [name, setName] = useState(initial?.name ?? '');
   const [address, setAddress] = useState(initial?.address ?? '');
   const [rtsp, setRtsp] = useState(initial?.rtsp_url ?? '');
+  const [externalKey, setExternalKey] = useState(initial?.external_key ?? '');
   const [latitude, setLatitude] = useState<number | null>(initial?.latitude ?? null);
   const [longitude, setLongitude] = useState<number | null>(initial?.longitude ?? null);
   const [saving, setSaving] = useState(false);
@@ -44,7 +46,14 @@ export default function CameraForm({
     setSaving(true);
     setError('');
     try {
-      await onSubmit({ name, address, rtsp_url: rtsp, latitude, longitude });
+      await onSubmit({
+        name,
+        address,
+        rtsp_url: rtsp,
+        external_key: externalKey.trim(),
+        latitude,
+        longitude,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка');
     } finally {
@@ -84,6 +93,18 @@ export default function CameraForm({
           className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-sky-400"
           required
         />
+      </div>
+      <div>
+        <label className="block text-sm text-gray-700 mb-1">Номер камеры у сборщика</label>
+        <input
+          value={externalKey}
+          onChange={(e) => setExternalKey(e.target.value)}
+          placeholder="напр. 2 — для кадров cam2_*.jpg"
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-sky-400"
+        />
+        <p className="text-xs text-gray-400 mt-1">
+          По нему планировщик привязывает кадры и зону контроля (ROI) к этой камере.
+        </p>
       </div>
       <div>
         <label className="block text-sm text-gray-700 mb-1">Адрес *</label>

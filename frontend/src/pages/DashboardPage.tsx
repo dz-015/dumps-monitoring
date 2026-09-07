@@ -57,7 +57,7 @@ export default function DashboardPage() {
       <h1 className="text-2xl font-bold text-gray-900">Панель управления</h1>
       <p className="text-sm text-gray-500 mb-6">Обзор состояния контейнерных площадок</p>
 
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <KpiCard
           label="Всего площадок"
           value={stats.total_sites}
@@ -82,9 +82,9 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         <Card title="Статус площадок" subtitle="Распределение по состоянию">
-          <div className="flex items-center gap-6 pt-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 pt-2">
             <ResponsiveContainer width={160} height={160}>
               <PieChart>
                 <Pie
@@ -100,7 +100,7 @@ export default function DashboardPage() {
                 </Pie>
               </PieChart>
             </ResponsiveContainer>
-            <div className="space-y-2">
+            <div className="space-y-2 w-full sm:w-auto">
               {pieData.map((d) => (
                 <div key={d.name} className="flex items-center gap-2 text-sm">
                   <span className="w-3 h-3 rounded-full" style={{ backgroundColor: d.color }} />

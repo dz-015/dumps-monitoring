@@ -32,10 +32,9 @@ export default function MapPage() {
 
       {error && <ErrorBanner message={error} onRetry={load} />}
 
-      <div
-        className="bg-white rounded-xl border border-gray-200 overflow-hidden"
-        style={{ height: 'calc(100vh - 180px)' }}
-      >
+      {/* На телефоне вычитаем ещё нижнюю навигацию; dvh — из-за плавающей
+          адресной строки мобильных браузеров */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden h-[calc(100dvh-240px)] md:h-[calc(100vh-180px)]">
         <MapContainer
           center={[44.952, 34.1]}
           zoom={13}

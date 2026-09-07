@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -52,11 +52,26 @@ describe('Layout', () => {
       logout: vi.fn(),
     };
     renderAt('/');
+    const sidebar = screen.getByRole('navigation', { name: 'Основная навигация' });
     const expected = ['Панель управления', 'Карта', 'Камеры', 'Оповещения'];
     for (const label of expected) {
-      expect(screen.getByRole('link', { name: new RegExp(label) })).toBeInTheDocument();
+      expect(within(sidebar).getByRole('link', { name: new RegExp(label) })).toBeInTheDocument();
     }
-    expect(screen.queryByRole('link', { name: /Площадки/ })).toBeNull();
+    expect(within(sidebar).queryByRole('link', { name: /Площадки/ })).toBeNull();
+  });
+
+  it('renders a mobile bottom bar with the same 4 links plus profile', () => {
+    mockState = {
+      token: 'tok',
+      user: { full_name: 'Ivan', email: 'i@x.test' },
+      logout: vi.fn(),
+    };
+    renderAt('/');
+    const bottom = screen.getByRole('navigation', { name: 'Нижняя навигация' });
+    expect(within(bottom).getAllByRole('link')).toHaveLength(4);
+    expect(within(bottom).getByRole('button', { name: /Профиль/ })).toBeInTheDocument();
+    // Скрыта на десктопе, видна на мобильном.
+    expect(bottom.className).toMatch(/md:hidden/);
   });
 
   it('marks the active nav item based on the URL', () => {
@@ -66,8 +81,12 @@ describe('Layout', () => {
       logout: vi.fn(),
     };
     renderAt('/cameras');
-    const camerasLink = screen.getByRole('link', { name: /Камеры/ });
+    const sidebar = screen.getByRole('navigation', { name: 'Основная навигация' });
+    const camerasLink = within(sidebar).getByRole('link', { name: /Камеры/ });
     expect(camerasLink.className).toMatch(/bg-gray-100/);
+    const bottom = screen.getByRole('navigation', { name: 'Нижняя навигация' });
+    const bottomCameras = within(bottom).getByRole('link', { name: /Камеры/ });
+    expect(bottomCameras.className).toMatch(/text-sky-600/);
   });
 
   it('hides nav labels when sidebar is collapsed and persists across renders', async () => {
@@ -78,16 +97,17 @@ describe('Layout', () => {
     };
     const ue = userEvent.setup();
     const { unmount } = renderAt('/');
+    const sidebar = () => screen.getByRole('navigation', { name: 'Основная навигация' });
 
-    expect(screen.getByText('Камеры')).toBeInTheDocument();
+    expect(within(sidebar()).getByText('Камеры')).toBeInTheDocument();
 
     await ue.click(screen.getByRole('button', { name: 'Свернуть меню' }));
-    expect(screen.queryByText('Камеры')).toBeNull();
+    expect(within(sidebar()).queryByText('Камеры')).toBeNull();
     expect(localStorage.getItem('sidebar-collapsed')).toBe('1');
 
     unmount();
     renderAt('/');
-    expect(screen.queryByText('Камеры')).toBeNull();
+    expect(within(sidebar()).queryByText('Камеры')).toBeNull();
     expect(screen.getByRole('button', { name: 'Развернуть меню' })).toBeInTheDocument();
   });
 

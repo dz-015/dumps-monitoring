@@ -14,6 +14,15 @@ export interface User {
   is_admin: boolean;
   organization_id: number | null;
   avatar_path: string | null;
+  telegram_connected: boolean;
+  max_connected: boolean;
+}
+
+// Общая форма для обоих каналов уведомлений (Telegram и MAX).
+export interface TelegramStatus {
+  enabled: boolean;
+  connected: boolean;
+  link: string | null;
 }
 
 export interface Site {
@@ -35,6 +44,7 @@ export interface Camera {
   site_name: string;
   name: string;
   rtsp_url: string;
+  external_key: string | null;
   is_active: boolean;
   last_checked: string | null;
   created_at: string;
@@ -100,6 +110,7 @@ export interface CameraCreate {
   site_id: number;
   name: string;
   rtsp_url: string;
+  external_key?: string | null;
 }
 
 export interface AlertsPage {

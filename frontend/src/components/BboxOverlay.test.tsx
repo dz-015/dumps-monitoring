@@ -97,6 +97,26 @@ describe('BboxOverlay', () => {
     expect(strokes).toEqual(['#ef4444', '#22c55e', '#f97316']);
   });
 
+  it('knows the real model classes bin_ok and bin_overflow', () => {
+    const { container, getByText } = render(
+      <BboxOverlay
+        imageUrl="/fake.jpg"
+        detections={[
+          { class_name: 'bin_ok', confidence: 1, x: 0.3, y: 0.3, w: 0.1, h: 0.1 },
+          { class_name: 'bin_overflow', confidence: 1, x: 0.7, y: 0.7, w: 0.1, h: 0.1 },
+        ]}
+        width={100}
+        height={100}
+      />
+    );
+    const strokes = Array.from(container.querySelectorAll('rect[fill="none"]')).map((r) =>
+      r.getAttribute('stroke')
+    );
+    expect(strokes).toEqual(['#22c55e', '#ef4444']);
+    expect(getByText(/Бак ОК/)).toBeInTheDocument();
+    expect(getByText(/Бак перепол./)).toBeInTheDocument();
+  });
+
   it('uses fallback colour for unknown class_name', () => {
     const { container } = render(
       <BboxOverlay
@@ -120,6 +140,43 @@ describe('BboxOverlay', () => {
       />
     );
     expect(getByText(/87%/)).toBeInTheDocument();
+  });
+
+  it('fill mode takes the coordinate system from the measured container', () => {
+    const orig = globalThis.ResizeObserver;
+    // jsdom не умеет ResizeObserver — подсовываем контейнер 200×100.
+    class FakeRO {
+      cb: ResizeObserverCallback;
+      constructor(cb: ResizeObserverCallback) {
+        this.cb = cb;
+      }
+      observe() {
+        this.cb(
+          [{ contentRect: { width: 200, height: 100 } }] as unknown as ResizeObserverEntry[],
+          this as unknown as ResizeObserver
+        );
+      }
+      unobserve() {}
+      disconnect() {}
+    }
+    globalThis.ResizeObserver = FakeRO as unknown as typeof ResizeObserver;
+    try {
+      const { container } = render(
+        <BboxOverlay
+          fill
+          imageUrl="/fake.jpg"
+          detections={[{ class_name: 'metal_ok', confidence: 1, x: 0.5, y: 0.5, w: 0.2, h: 0.2 }]}
+        />
+      );
+      expect(container.querySelector('svg')!.getAttribute('viewBox')).toBe('0 0 200 100');
+      const bboxRect = container.querySelector('rect[fill="none"]') as SVGRectElement;
+      expect(bboxRect.getAttribute('x')).toBe('80'); // (0.5-0.1) * 200
+      expect(bboxRect.getAttribute('y')).toBe('40'); // (0.5-0.1) * 100
+      expect(bboxRect.getAttribute('width')).toBe('40');
+      expect(bboxRect.getAttribute('height')).toBe('20');
+    } finally {
+      globalThis.ResizeObserver = orig;
+    }
   });
 
   it('renders nothing except background image when detections is empty', () => {

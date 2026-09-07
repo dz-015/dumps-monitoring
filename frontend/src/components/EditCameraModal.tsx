@@ -36,6 +36,7 @@ export default function EditCameraModal({
       await updateCamera(camera.id, {
         name: values.name,
         rtsp_url: values.rtsp_url,
+        external_key: values.external_key || null,
       });
     } else if (values.rtsp_url.trim()) {
       // Site had no camera yet — create one instead of silently discarding
@@ -44,6 +45,7 @@ export default function EditCameraModal({
         site_id: site.id,
         name: values.name,
         rtsp_url: values.rtsp_url,
+        external_key: values.external_key || null,
       });
     }
     onSaved();
@@ -75,6 +77,7 @@ export default function EditCameraModal({
             name: site.name,
             address: site.address,
             rtsp_url: camera?.rtsp_url ?? '',
+            external_key: camera?.external_key ?? '',
             latitude: site.latitude,
             longitude: site.longitude,
           }}

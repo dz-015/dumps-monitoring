@@ -21,6 +21,7 @@ import {
 import type { Alert, Camera, ProblemsPoint, Site, Snapshot } from '../lib/types';
 import StatusBadge from '../components/StatusBadge';
 import BboxOverlay from '../components/BboxOverlay';
+import SnapshotLightbox from '../components/SnapshotLightbox';
 import EditCameraModal from '../components/EditCameraModal';
 import ProblemsAreaChart from '../components/ProblemsAreaChart';
 import SiteMiniMap from '../components/SiteMiniMap';
@@ -79,6 +80,7 @@ export default function SiteDetailPage() {
   const [weekData, setWeekData] = useState<ProblemsPoint[]>([]);
   const [monthData, setMonthData] = useState<ProblemsPoint[]>([]);
   const [snapIndex, setSnapIndex] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const [alertsPage, setAlertsPage] = useState(1);
   const [editOpen, setEditOpen] = useState(false);
   const [loadError, setLoadError] = useState('');
@@ -216,7 +218,7 @@ export default function SiteDetailPage() {
           ← Камеры
         </Link>
       </div>
-      <div className="flex items-center gap-3 mb-1">
+      <div className="flex flex-wrap items-center gap-3 mb-1">
         <h1 className="text-2xl font-bold text-gray-900">{site.name}</h1>
         <StatusBadge value={site.active_status ?? site.status} />
         {/* Editing needs the camera record: opening the form before it loads
@@ -242,9 +244,9 @@ export default function SiteDetailPage() {
       )}
       {partialError && <ErrorBanner message={partialError} onRetry={retryAll} />}
 
-      {/* Snapshot viewer + location, side by side */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-      <div className="col-span-2 bg-white rounded-xl border border-gray-200 p-5">
+      {/* Snapshot viewer + location, side by side (столбиком на телефоне) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+      <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-4 sm:p-5">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold text-gray-900">Последний снимок</h2>
           {selectedSnap && (
@@ -271,7 +273,11 @@ export default function SiteDetailPage() {
               >
                 <ChevronLeft size={18} />
               </button>
-              <div className="flex-1">
+              <div
+                className="flex-1 cursor-zoom-in"
+                onClick={() => setLightboxOpen(true)}
+                title="Открыть на весь экран"
+              >
                 <BboxOverlay
                   imageUrl={`/uploads/${selectedSnap.image_path}`}
                   detections={selectedSnap.detections || []}
@@ -313,6 +319,7 @@ export default function SiteDetailPage() {
               longitude={site.longitude}
               status={site.active_status ?? site.status}
               height={260}
+              interactive
             />
             <div className="text-xs text-gray-400 mt-2">
               {site.latitude.toFixed(5)}, {site.longitude.toFixed(5)}
@@ -326,8 +333,8 @@ export default function SiteDetailPage() {
       </div>
       </div>
 
-      {/* Two charts side by side */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      {/* Two charts side by side (столбиком на телефоне) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         <ProblemsChart title="Проблемы за последние 7 дней" data={weekData} />
         <ProblemsChart title="Проблемы за последний месяц" data={monthData} />
       </div>
@@ -335,6 +342,7 @@ export default function SiteDetailPage() {
       {/* Alert history table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <h2 className="font-semibold text-gray-900 px-5 pt-5 pb-3">История оповещений</h2>
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100 text-left text-gray-500 text-xs uppercase tracking-wide">
@@ -376,6 +384,7 @@ export default function SiteDetailPage() {
             )}
           </tbody>
         </table>
+        </div>
 
         {alertsTotal > ALERTS_PER_PAGE && (
           <div className="flex items-center justify-end gap-1 px-4 py-3 border-t border-gray-100 text-sm">
@@ -408,6 +417,17 @@ export default function SiteDetailPage() {
             retryAll();
           }}
           onDeleted={() => navigate('/cameras')}
+        />
+      )}
+
+      {lightboxOpen && selectedSnap && (
+        <SnapshotLightbox
+          imageUrl={`/uploads/${selectedSnap.image_path}`}
+          detections={selectedSnap.detections || []}
+          caption={`${new Date(selectedSnap.taken_at).toLocaleString('ru-RU')}${
+            selectedSnap.camera_id ? ` · Камера #${selectedSnap.camera_id}` : ''
+          }`}
+          onClose={() => setLightboxOpen(false)}
         />
       )}
     </div>

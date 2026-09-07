@@ -4,7 +4,7 @@ import { LayoutDashboard, Map, Bell, ChevronLeft, ChevronRight } from 'lucide-re
 import { useAuthStore } from '../lib/store';
 import { getMe } from '../lib/api';
 import ProfileModal from './ProfileModal';
-import logo from '../assets/logo.svg';
+import { brandName, logoSrc as logo } from '../lib/logo';
 import camerasIcon from '../assets/sidebar-cameras.svg';
 
 type NavItem = {
@@ -20,6 +20,13 @@ const NAV: NavItem[] = [
   { to: '/cameras', label: 'Камеры', iconSrc: camerasIcon },
   { to: '/alerts', label: 'Оповещения', Icon: Bell },
 ];
+
+// «Панель управления» не влезает под иконку нижней панели.
+const SHORT_LABELS: Record<string, string> = { 'Панель управления': 'Панель' };
+
+function shortLabel(label: string): string {
+  return SHORT_LABELS[label] ?? label;
+}
 
 const COLLAPSE_KEY = 'sidebar-collapsed';
 
@@ -48,13 +55,14 @@ export default function Layout() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
+      {/* Сайдбар — только десктоп/планшет; на телефоне вместо него нижняя панель */}
       <aside
-        className={`${collapsed ? 'w-16' : 'w-56'} bg-white border-r border-gray-200 flex flex-col transition-[width] duration-150`}
+        className={`${collapsed ? 'w-16' : 'w-56'} bg-white border-r border-gray-200 hidden md:flex flex-col transition-[width] duration-150`}
       >
         <div className="p-4 border-b border-gray-200">
           {collapsed ? (
             <div className="flex flex-col items-center gap-2">
-              <img src={logo} alt="НЭКОБАК" className="w-8 h-8" />
+              <img src={logo} alt="ТКО | Мониторинг" className="w-8 h-8" />
               <button
                 type="button"
                 onClick={() => setCollapsed(false)}
@@ -66,8 +74,12 @@ export default function Layout() {
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <img src={logo} alt="НЭКОБАК" className="w-8 h-8 flex-shrink-0" />
-              <span className="font-bold text-lg tracking-tight">НЭКОБАК</span>
+              <img src={logo} alt="ТКО | Мониторинг" className="w-8 h-8 flex-shrink-0" />
+              {/* text-[15px]: новое имя длиннее прежнего и в text-lg не влезает
+                  в сайдбар w-56 рядом с кнопкой сворачивания */}
+              <span className="font-bold text-[15px] tracking-tight whitespace-nowrap">
+                {brandName}
+              </span>
               <button
                 type="button"
                 onClick={() => setCollapsed(true)}
@@ -79,7 +91,7 @@ export default function Layout() {
             </div>
           )}
         </div>
-        <nav className="flex-1 p-2">
+        <nav aria-label="Основная навигация" className="flex-1 p-2">
           {NAV.map(({ to, label, Icon, iconSrc }) => {
             const active =
               to === '/' ? location.pathname === '/' : location.pathname.startsWith(to);
@@ -134,9 +146,55 @@ export default function Layout() {
         </button>
       </aside>
 
-      <main className="flex-1 p-6 overflow-auto">
+      <main className="flex-1 p-4 pb-24 md:p-6 md:pb-6 overflow-auto">
         <Outlet />
       </main>
+
+      {/* Нижняя панель — только телефон */}
+      <nav
+        aria-label="Нижняя навигация"
+        className="md:hidden fixed bottom-0 inset-x-0 z-[900] bg-white border-t border-gray-200 flex pb-[env(safe-area-inset-bottom)]"
+      >
+        {NAV.map(({ to, label, Icon, iconSrc }) => {
+          const active =
+            to === '/' ? location.pathname === '/' : location.pathname.startsWith(to);
+          return (
+            <Link
+              key={to}
+              to={to}
+              className={`flex-1 flex flex-col items-center gap-0.5 pt-2 pb-1.5 text-[10px] leading-tight ${
+                active ? 'text-sky-600 font-medium' : 'text-gray-500'
+              }`}
+            >
+              {iconSrc ? (
+                <img src={iconSrc} alt="" className="w-5 h-5" />
+              ) : (
+                Icon && <Icon size={20} strokeWidth={active ? 2.2 : 1.8} />
+              )}
+              {shortLabel(label)}
+            </Link>
+          );
+        })}
+        <button
+          type="button"
+          onClick={() => setProfileOpen(true)}
+          aria-label="Профиль"
+          className="flex-1 flex flex-col items-center gap-0.5 pt-2 pb-1.5 text-[10px] leading-tight text-gray-500"
+        >
+          <span className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-medium overflow-hidden">
+            {user?.avatar_path ? (
+              <img
+                src={`/uploads/${user.avatar_path}`}
+                alt=""
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              user?.full_name?.[0] || user?.email?.[0]?.toUpperCase() || '?'
+            )}
+          </span>
+          Профиль
+        </button>
+      </nav>
 
       {profileOpen && user && (
         <ProfileModal user={user} onClose={() => setProfileOpen(false)} />

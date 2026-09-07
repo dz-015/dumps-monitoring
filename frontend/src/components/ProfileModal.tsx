@@ -1,7 +1,14 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Camera, Link2, LogOut, X } from 'lucide-react';
-import type { User } from '../lib/types';
-import { updateMe, uploadAvatar } from '../lib/api';
+import type { TelegramStatus, User } from '../lib/types';
+import {
+  disconnectMax,
+  disconnectTelegram,
+  getMaxStatus,
+  getTelegramStatus,
+  updateMe,
+  uploadAvatar,
+} from '../lib/api';
 import { useAuthStore } from '../lib/store';
 import { useEscape } from '../lib/useEscape';
 
@@ -62,7 +69,7 @@ export default function ProfileModal({ user, onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl"
+        className="bg-white rounded-2xl p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-5">
@@ -119,8 +126,12 @@ export default function ProfileModal({ user, onClose }: Props) {
 
         <div className="space-y-3 mb-5 pt-4 border-t border-gray-100">
           <div className="text-sm font-semibold text-gray-900">Уведомления</div>
-          <NotificationRow service="MAX" placeholder="Group" />
-          <NotificationRow service="Telegram" placeholder="Group" />
+          <ChannelRow service="MAX" fetchStatus={getMaxStatus} disconnect={disconnectMax} />
+          <ChannelRow
+            service="Telegram"
+            fetchStatus={getTelegramStatus}
+            disconnect={disconnectTelegram}
+          />
         </div>
 
         {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
@@ -159,13 +170,57 @@ export default function ProfileModal({ user, onClose }: Props) {
   );
 }
 
-function NotificationRow({ service, placeholder }: { service: string; placeholder: string }) {
+function ChannelRow({
+  service,
+  fetchStatus,
+  disconnect,
+}: {
+  service: string;
+  fetchStatus: () => Promise<TelegramStatus>;
+  disconnect: () => Promise<TelegramStatus>;
+}) {
+  const [status, setStatus] = useState<TelegramStatus | null>(null);
+
+  useEffect(() => {
+    fetchStatus().then(setStatus).catch(() => {});
+  }, [fetchStatus]);
+
+  const handleDisconnect = async () => {
+    try {
+      setStatus(await disconnect());
+    } catch {
+      /* строка перезагрузится при следующем открытии профиля */
+    }
+  };
+
   return (
     <div>
       <div className="text-xs text-gray-500 mb-1">{service}</div>
       <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2">
         <Link2 size={14} className="text-sky-500" />
-        <span className="text-sm text-gray-700">{placeholder}</span>
+        {!status || !status.enabled ? (
+          <span className="text-sm text-gray-400">Недоступно</span>
+        ) : status.connected ? (
+          <>
+            <span className="text-sm text-green-600">Подключено</span>
+            <button
+              type="button"
+              onClick={handleDisconnect}
+              className="ml-auto text-xs text-gray-400 hover:text-red-600"
+            >
+              Отключить
+            </button>
+          </>
+        ) : (
+          <a
+            href={status.link ?? '#'}
+            target="_blank"
+            rel="noreferrer"
+            className="text-sm text-sky-600 hover:text-sky-700 font-medium"
+          >
+            Подключить — уведомления об алертах
+          </a>
+        )}
       </div>
     </div>
   );

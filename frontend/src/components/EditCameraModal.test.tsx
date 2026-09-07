@@ -22,6 +22,7 @@ const camera: Camera = {
   site_name: 'Площадка ЦУМ',
   name: 'Камера 1',
   rtsp_url: 'rtsp://cam.example/stream',
+  external_key: null,
   is_active: true,
   last_checked: null,
   created_at: '2026-01-01T00:00:00+00:00',

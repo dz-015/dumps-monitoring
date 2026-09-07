@@ -9,6 +9,7 @@ import type {
   Site,
   SiteCreate,
   Snapshot,
+  TelegramStatus,
   User,
 } from './types';
 import { clearToken, getToken } from './tokenStorage';
@@ -58,6 +59,16 @@ export const uploadAvatar = (file: File) => {
   fd.append('file', file);
   return request<User>('/auth/avatar', { method: 'POST', body: fd });
 };
+
+export const getTelegramStatus = () => request<TelegramStatus>('/notifications/telegram');
+
+export const disconnectTelegram = () =>
+  request<TelegramStatus>('/notifications/telegram', { method: 'DELETE' });
+
+export const getMaxStatus = () => request<TelegramStatus>('/notifications/max');
+
+export const disconnectMax = () =>
+  request<TelegramStatus>('/notifications/max', { method: 'DELETE' });
 
 export type RegisterPayload =
   | { email: string; password: string; full_name: string; organization_name: string }
