@@ -87,7 +87,7 @@ def seed_db(db: Session) -> None:
     if db.query(User).first():
         return
 
-    demo_org = Organization(name="НЭКОБАК — демо", join_code=secrets.token_urlsafe(8))
+    demo_org = Organization(name="ТКО Мониторинг — демо", join_code=secrets.token_urlsafe(8))
     db.add(demo_org)
     db.flush()
 

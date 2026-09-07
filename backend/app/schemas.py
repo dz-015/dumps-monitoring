@@ -32,9 +32,18 @@ class UserOut(BaseModel):
     is_admin: bool = False
     organization_id: int | None = None
     avatar_path: str | None = None
+    telegram_connected: bool = False
+    max_connected: bool = False
 
     class Config:
         from_attributes = True
+
+
+class TelegramStatus(BaseModel):
+    # enabled=False — на сервере не настроен токен бота, кнопку не показываем.
+    enabled: bool
+    connected: bool
+    link: str | None = None
 
 
 class UserUpdate(BaseModel):
@@ -96,11 +105,13 @@ class CameraCreate(BaseModel):
     site_id: int
     name: str
     rtsp_url: str
+    external_key: str | None = None
 
 
 class CameraUpdate(BaseModel):
     name: str | None = None
     rtsp_url: str | None = None
+    external_key: str | None = None
     is_active: bool | None = None
 
 
@@ -109,6 +120,7 @@ class CameraOut(BaseModel):
     site_id: int
     name: str
     rtsp_url: str
+    external_key: str | None = None
     is_active: bool
     last_checked: UTCDateTime | None
     created_at: UTCDateTime

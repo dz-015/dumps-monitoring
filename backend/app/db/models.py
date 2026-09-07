@@ -1,6 +1,6 @@
 import datetime as dt
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, String, func
+from sqlalchemy import BigInteger, Boolean, DateTime, Float, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
@@ -28,12 +28,26 @@ class User(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
     avatar_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    # Telegram chat_id, записывается ботом при /start по deep-link (бот не может
+    # написать первым по хэндлу — только так). BigInteger: chat_id > 2^31.
+    telegram_chat_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    # user_id в МАКС, записывается ботом по событию bot_started с payload
+    # deep-link (личка в МАКС адресуется по user_id, а не chat_id).
+    max_user_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     organization_id: Mapped[int | None] = mapped_column(
         ForeignKey("organizations.id"), nullable=True
     )
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, server_default=func.now())
 
     organization = relationship("Organization", back_populates="users")
+
+    @property
+    def telegram_connected(self) -> bool:
+        return self.telegram_chat_id is not None
+
+    @property
+    def max_connected(self) -> bool:
+        return self.max_user_id is not None
 
 
 class Site(Base):
@@ -63,6 +77,9 @@ class Camera(Base):
     site_id: Mapped[int] = mapped_column(ForeignKey("sites.id"), index=True)
     name: Mapped[str] = mapped_column(String(255))
     rtsp_url: Mapped[str] = mapped_column(String(512))
+    # Ключ камеры у сборщика: "2" для кадров cam2_*.jpg. По нему планировщик
+    # находит камеру для кадра, а пайплайн — её ROI в cameras_roi_v2.json.
+    external_key: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     last_checked: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, server_default=func.now())
@@ -96,7 +113,7 @@ class Detection(Base):
     snapshot_id: Mapped[int] = mapped_column(ForeignKey("snapshots.id"))
     class_name: Mapped[str] = mapped_column(
         String(50)
-    )  # metal_ok, metal_overflow, ..., ground_trash
+    )  # bin_ok | bin_overflow | ground_trash (модель материал бака не различает)
     confidence: Mapped[float] = mapped_column(Float)
     x: Mapped[float] = mapped_column(Float)  # normalized 0..1
     y: Mapped[float] = mapped_column(Float)

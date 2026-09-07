@@ -10,3 +10,10 @@ python-multipart==0.0.19
 aiofiles==24.1.0
 apscheduler==3.10.4
 Pillow==11.1.0
+# Inference: ONNX Runtime CPU build. The GPU build is deliberately not used —
+# the load is ~1 frame/minute even at 55 cameras, and CPU keeps deployment
+# free of CUDA/driver coupling.
+numpy==2.2.1
+onnxruntime==1.20.1
+requests==2.32.3
+boto3==1.40.5

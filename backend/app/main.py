@@ -4,10 +4,19 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.db.models import *  # noqa: F401,F403  registers all models with Base.metadata
-from app.routers import alerts, auth, cameras, dashboard, predict, sites, snapshots
+from app.routers import (
+    alerts,
+    auth,
+    cameras,
+    dashboard,
+    notifications,
+    predict,
+    sites,
+    snapshots,
+)
 
 app = FastAPI(
-    title="НЭКОБАК API",
+    title="ТКО | Мониторинг API",
     description="API for waste container monitoring system",
     version="0.1.0",
 )
@@ -33,6 +42,7 @@ app.include_router(alerts.router)
 app.include_router(dashboard.router)
 app.include_router(snapshots.router)
 app.include_router(predict.router)
+app.include_router(notifications.router)
 
 
 @app.get("/api/health")

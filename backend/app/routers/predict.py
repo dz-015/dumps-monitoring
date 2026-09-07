@@ -1,14 +1,20 @@
-"""
-Mock prediction endpoint.
-Will be replaced with real YOLOv8m inference once ML model is trained.
-"""
+"""Prediction endpoint — real RT-DETR inference over ONNX Runtime."""
 
-import random
+import io
+import logging
+from datetime import datetime
 
-from fastapi import APIRouter, Depends, File, UploadFile
+import anyio.to_thread
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from PIL import Image, UnidentifiedImageError
 
 from app.auth import get_current_user
+from app.config import settings
+from app.ml import ModelsUnavailable
+from app.ml.pipeline import get_pipeline
 from app.schemas import PredictionBox, PredictResponse
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/predict", tags=["predict"])
 
@@ -16,46 +22,44 @@ router = APIRouter(prefix="/api/predict", tags=["predict"])
 @router.post("", response_model=PredictResponse)
 async def predict(
     file: UploadFile = File(...),
+    # Optional: without a camera we cannot pick the right ROI, so the
+    # prediction is returned unfiltered. The hourly scheduler always passes it.
+    camera_key: str | None = Form(default=None),
+    taken_at: datetime | None = Form(default=None),
     _=Depends(get_current_user),
 ):
-    # ── MOCK: return random detections ──
-    classes_ok = ["metal_ok", "plastic_ok", "euro_ok"]
-    classes_overflow = ["metal_overflow", "plastic_overflow", "euro_overflow"]
+    payload = await file.read(settings.MAX_UPLOAD_BYTES + 1)
+    if len(payload) > settings.MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="Image too large")
 
-    detections = []
-    num_bins = random.randint(2, 5)
-    for _ in range(num_bins):
-        is_overflow = random.random() < 0.15
-        cls = random.choice(classes_overflow if is_overflow else classes_ok)
-        detections.append(
-            PredictionBox(
-                class_name=cls,
-                confidence=round(random.uniform(0.7, 0.99), 2),
-                x=round(random.uniform(0.05, 0.6), 3),
-                y=round(random.uniform(0.2, 0.7), 3),
-                w=round(random.uniform(0.08, 0.2), 3),
-                h=round(random.uniform(0.15, 0.35), 3),
-            )
+    try:
+        image = Image.open(io.BytesIO(payload))
+        image.load()
+    except (UnidentifiedImageError, OSError):
+        raise HTTPException(status_code=400, detail="Not a readable image")
+
+    try:
+        verdict = await anyio.to_thread.run_sync(
+            lambda: get_pipeline().run(image, camera_key=camera_key, taken_at=taken_at)
         )
-
-    # 10% chance of ground trash
-    if random.random() < 0.10:
-        detections.append(
-            PredictionBox(
-                class_name="ground_trash",
-                confidence=round(random.uniform(0.6, 0.95), 2),
-                x=round(random.uniform(0.0, 0.5), 3),
-                y=round(random.uniform(0.5, 0.8), 3),
-                w=round(random.uniform(0.2, 0.5), 3),
-                h=round(random.uniform(0.1, 0.3), 3),
-            )
-        )
-
-    has_overflow = any(d.class_name.endswith("_overflow") for d in detections)
-    has_contamination = any(d.class_name == "ground_trash" for d in detections)
+    except ModelsUnavailable as exc:
+        # The models are mounted, not baked into the image — a missing mount is
+        # an operational problem, and 503 says so honestly.
+        logger.error("inference unavailable: %s", exc)
+        raise HTTPException(status_code=503, detail="Model is not available") from exc
 
     return PredictResponse(
-        detections=detections,
-        has_overflow=has_overflow,
-        has_contamination=has_contamination,
+        detections=[
+            PredictionBox(
+                class_name=d.class_name,
+                confidence=round(d.confidence, 4),
+                x=round(d.x, 4),
+                y=round(d.y, 4),
+                w=round(d.w, 4),
+                h=round(d.h, 4),
+            )
+            for d in verdict.detections
+        ],
+        has_overflow=verdict.has_overflow,
+        has_contamination=verdict.has_contamination,
     )
