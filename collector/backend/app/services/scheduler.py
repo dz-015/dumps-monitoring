@@ -69,8 +69,11 @@ async def start_scheduler() -> None:
     from sqlmodel import select
 
     async with async_session() as session:
+        # "error" cameras self-heal on the next successful capture, so they
+        # must be scheduled too — otherwise a restart while a camera is down
+        # silences it forever. Only explicitly "inactive" ones stay off.
         result = await session.exec(
-            select(Camera).where(Camera.status == "active")
+            select(Camera).where(Camera.status != "inactive")
         )
         cameras = result.all()
 

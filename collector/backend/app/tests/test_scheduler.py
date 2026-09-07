@@ -80,6 +80,32 @@ async def test_start_scheduler_loads_cameras(mock_async_session):
     assert scheduler.running
 
 
+@patch("app.services.scheduler.scheduler")
+@patch("app.services.scheduler.async_session")
+async def test_start_scheduler_includes_error_cameras(mock_async_session, _mock_sched):
+    """Cameras in "error" must be rescheduled after a restart.
+
+    A camera errors transiently (network blip) and self-heals on the next
+    successful capture. If start_scheduler only picked status == "active",
+    a restart while a camera is in "error" would silence it forever
+    (regression: all 7 cameras dead after the 2026-08-07 host reboot).
+    Only explicitly "inactive" cameras stay unscheduled.
+    """
+    mock_result = MagicMock()
+    mock_result.all.return_value = []
+
+    mock_session = AsyncMock()
+    mock_session.exec.return_value = mock_result
+    mock_async_session.return_value.__aenter__ = AsyncMock(return_value=mock_session)
+    mock_async_session.return_value.__aexit__ = AsyncMock(return_value=False)
+
+    await start_scheduler()
+
+    query = mock_session.exec.call_args[0][0]
+    compiled = str(query.compile(compile_kwargs={"literal_binds": True}))
+    assert "status != 'inactive'" in compiled
+
+
 @patch("app.services.scheduler.capture_and_store", new_callable=AsyncMock)
 @patch("app.services.scheduler.async_session")
 async def test_capture_job_calls_capture_and_store(
