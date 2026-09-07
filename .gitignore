@@ -32,6 +32,11 @@ build/
 Thumbs.db
 
 # Data / models (DVC-managed later)
+# Кадры с камер НЕ коммитим: репозиторий публичный, а на кадрах люди,
+# автомобильные номера и адреса площадок.
+ml/roi_check/
+ml/demo_frames/
+ml/live_demo/
 ml/data/raw/
 ml/data/processed/
 ml/data/public/
