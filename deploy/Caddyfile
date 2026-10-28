@@ -1,0 +1,19 @@
+# HTTPS для НЭКОБАК. Caddy сам получает и продлевает сертификаты Let's Encrypt —
+# нужно только, чтобы A-записи доменов указывали на этот хост и порты 80/443
+# были открыты. Запуск: docker compose --profile https up -d
+#
+# Внутри compose-сети фронтенд слушает 80 (nginx с приложением и прокси /api →
+# backend), поэтому Caddy проксирует всё на него одного.
+
+leti-metla.ru, letimetla.ru {
+	reverse_proxy frontend:80
+}
+
+# www → без www
+www.leti-metla.ru {
+	redir https://leti-metla.ru{uri} permanent
+}
+
+www.letimetla.ru {
+	redir https://letimetla.ru{uri} permanent
+}
