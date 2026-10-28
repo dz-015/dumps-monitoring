@@ -65,7 +65,7 @@ def ingest_frame(
     shutil.copyfile(frame_path, dest_dir / dest_name)
 
     # В БД время хранится наивным UTC (как и server_default=func.now()).
-    stored_at = taken_at.astimezone(dt.timezone.utc).replace(tzinfo=None) \
+    stored_at = taken_at.astimezone(dt.UTC).replace(tzinfo=None) \
         if taken_at.tzinfo else taken_at
 
     snapshot = Snapshot(
@@ -114,7 +114,7 @@ def ingest_frame(
             else "contamination" if verdict.has_contamination
             else "clean"
         )
-    camera.last_checked = dt.datetime.now(dt.timezone.utc).replace(tzinfo=None)
+    camera.last_checked = dt.datetime.now(dt.UTC).replace(tzinfo=None)
 
     db.commit()
     db.refresh(snapshot)

@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 # Pixel rectangle in the ORIGINAL frame: (x1, y1, x2, y2).
@@ -34,7 +34,7 @@ class RoiConfig:
         self._by_camera = periods_by_camera
 
     @classmethod
-    def load(cls, path: str | Path) -> "RoiConfig":
+    def load(cls, path: str | Path) -> RoiConfig:
         raw = json.loads(Path(path).read_text())
         by_camera: dict[str, list[_Period]] = {}
         for camera, cfg in raw.items():
@@ -63,7 +63,7 @@ class RoiConfig:
         if not periods:
             return ()
         if when.tzinfo is None:
-            when = when.replace(tzinfo=timezone.utc)
+            when = when.replace(tzinfo=UTC)
         for period in periods:
             if period.until is None or when < period.until:
                 return period.rects
@@ -72,7 +72,7 @@ class RoiConfig:
 
 def _parse_ts(value: str) -> datetime:
     parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
 
 
 def inside(rects: tuple[Rect, ...], cx: float, cy: float, width: int, height: int) -> bool:

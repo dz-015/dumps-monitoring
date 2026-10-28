@@ -133,7 +133,7 @@ def _resolve_seed_alerts(db: Session, org: Organization) -> None:
     for alert in stale:
         alert.status = "resolved"
         alert.resolution_reason = "resolved_externally"
-        alert.resolved_at = dt.datetime.now(dt.timezone.utc).replace(tzinfo=None)
+        alert.resolved_at = dt.datetime.now(dt.UTC).replace(tzinfo=None)
     if stale:
         db.commit()
         logger.info("погашено %d сид-алертов без фото", len(stale))

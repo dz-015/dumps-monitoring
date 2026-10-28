@@ -13,14 +13,15 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from app.db.models import Alert, Detection as DetectionRow, Snapshot
+from app.db.models import Alert, Snapshot
+from app.db.models import Detection as DetectionRow
 from app.ingest import ingest_frame
 from app.ml.detector import Detection
 from app.ml.pipeline import Verdict
 from app.scheduler import parse_frame_name, process_dir
 from tests.conftest import make_camera, make_org, make_site
 
-TAKEN_AT = dt.datetime(2026, 5, 8, 8, 47, 34, tzinfo=dt.timezone.utc)
+TAKEN_AT = dt.datetime(2026, 5, 8, 8, 47, 34, tzinfo=dt.UTC)
 
 
 class StubPipeline:

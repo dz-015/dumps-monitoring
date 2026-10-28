@@ -6,14 +6,14 @@ app's settings — and so a broken .env never takes the model down with it.
 Import `app.ml.pipeline` explicitly when you want the configured singleton.
 """
 
-from app.ml.detector import CLASS_NAMES, Detection, Detector, ModelsUnavailable
+from app.ml.detector import CLASS_NAMES, Detection, Detector, ModelsUnavailableError
 from app.ml.roi import RoiConfig, inside
 
 __all__ = [
     "CLASS_NAMES",
     "Detection",
     "Detector",
-    "ModelsUnavailable",
+    "ModelsUnavailableError",
     "RoiConfig",
     "inside",
 ]

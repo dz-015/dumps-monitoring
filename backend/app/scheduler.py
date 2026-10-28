@@ -47,7 +47,7 @@ def parse_frame_name(name: str) -> tuple[str, dt.datetime] | None:
         return None
     taken_at = dt.datetime.strptime(
         f"{match['date']}_{match['time']}", "%Y-%m-%d_%H%M%S"
-    ).replace(tzinfo=dt.timezone.utc)
+    ).replace(tzinfo=dt.UTC)
     return match["key"], taken_at
 
 

@@ -10,7 +10,7 @@ from PIL import Image, UnidentifiedImageError
 
 from app.auth import get_current_user
 from app.config import settings
-from app.ml import ModelsUnavailable
+from app.ml import ModelsUnavailableError
 from app.ml.pipeline import get_pipeline
 from app.schemas import PredictionBox, PredictResponse
 
@@ -36,13 +36,13 @@ async def predict(
         image = Image.open(io.BytesIO(payload))
         image.load()
     except (UnidentifiedImageError, OSError):
-        raise HTTPException(status_code=400, detail="Not a readable image")
+        raise HTTPException(status_code=400, detail="Not a readable image") from None
 
     try:
         verdict = await anyio.to_thread.run_sync(
             lambda: get_pipeline().run(image, camera_key=camera_key, taken_at=taken_at)
         )
-    except ModelsUnavailable as exc:
+    except ModelsUnavailableError as exc:
         # The models are mounted, not baked into the image — a missing mount is
         # an operational problem, and 503 says so honestly.
         logger.error("inference unavailable: %s", exc)

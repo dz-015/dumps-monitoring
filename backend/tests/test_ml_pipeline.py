@@ -9,14 +9,14 @@ from __future__ import annotations
 
 import io
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import numpy as np
 import pytest
 from PIL import Image
 
-from app.ml.detector import CLASS_NAMES, Detection, Detector, ModelsUnavailable, _iou
+from app.ml.detector import CLASS_NAMES, Detection, Detector, ModelsUnavailableError, _iou
 from app.ml.pipeline import Pipeline, Verdict
 from app.ml.roi import RoiConfig, inside
 from tests.conftest import auth_headers, make_org, make_user
@@ -113,7 +113,7 @@ def test_fuse_three_way_agreement_survives_three_votes():
 
 
 def test_load_missing_dir_raises_models_unavailable():
-    with pytest.raises(ModelsUnavailable):
+    with pytest.raises(ModelsUnavailableError):
         make_detector().load()
 
 
@@ -146,9 +146,9 @@ def test_roi_load_skips_underscore_keys(roi_file):
 
 def test_roi_rects_at_picks_period_by_timestamp(roi_file):
     roi = RoiConfig.load(roi_file)
-    early = datetime(2026, 2, 1, tzinfo=timezone.utc)
-    mid = datetime(2026, 3, 10, tzinfo=timezone.utc)
-    late = datetime(2026, 7, 1, tzinfo=timezone.utc)
+    early = datetime(2026, 2, 1, tzinfo=UTC)
+    mid = datetime(2026, 3, 10, tzinfo=UTC)
+    late = datetime(2026, 7, 1, tzinfo=UTC)
     assert roi.rects_at("2", early) == ((464, 354, 1874, 728),)
     assert roi.rects_at("2", mid) == ((545, 104, 1411, 746),)
     assert roi.rects_at("2", late) == ((557, 96, 1441, 421),)
@@ -199,7 +199,7 @@ def test_pipeline_roi_drops_outside_centre(roi_file):
     inside_det = bin_overflow_at(600 / 1920, 400 / 1080)
     outside_det = bin_overflow_at(0.95, 0.95)
     verdict = Pipeline(StubDetector([inside_det, outside_det]), roi).run(
-        image, camera_key="7", taken_at=datetime(2026, 7, 1, tzinfo=timezone.utc)
+        image, camera_key="7", taken_at=datetime(2026, 7, 1, tzinfo=UTC)
     )
     assert verdict.detections == [inside_det]
     assert verdict.dropped_by_roi == 1
@@ -301,7 +301,7 @@ def test_predict_returns_detections(client, user_headers, monkeypatch):
 
 
 def test_predict_503_when_models_missing(client, user_headers, monkeypatch):
-    stub_pipeline(monkeypatch, exc=ModelsUnavailable("no models"))
+    stub_pipeline(monkeypatch, exc=ModelsUnavailableError("no models"))
     resp = client.post(
         "/api/predict",
         files={"file": ("a.jpg", jpeg_bytes(), "image/jpeg")},

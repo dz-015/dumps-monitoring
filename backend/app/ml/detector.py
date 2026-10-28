@@ -47,7 +47,7 @@ class Detection:
     h: float
 
 
-class ModelsUnavailable(RuntimeError):
+class ModelsUnavailableError(RuntimeError):
     """No ONNX file was found — the API should answer 503, not 500."""
 
 
@@ -76,7 +76,7 @@ class Detector:
 
         paths = sorted(self._model_dir.glob("*.onnx"))
         if not paths:
-            raise ModelsUnavailable(f"no .onnx files in {self._model_dir}")
+            raise ModelsUnavailableError(f"no .onnx files in {self._model_dir}")
 
         for path in paths:
             self._sessions.append(

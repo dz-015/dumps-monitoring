@@ -19,7 +19,7 @@ from app.ml.pipeline import Verdict
 from app.notify import make_link_token, notify_alerts, parse_link_token
 from tests.conftest import auth_headers, make_camera, make_org, make_site, make_user
 
-TAKEN_AT = dt.datetime(2026, 8, 3, 9, 0, 0, tzinfo=dt.timezone.utc)
+TAKEN_AT = dt.datetime(2026, 8, 3, 9, 0, 0, tzinfo=dt.UTC)
 
 
 @pytest.fixture

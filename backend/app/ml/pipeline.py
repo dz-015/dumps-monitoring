@@ -7,7 +7,7 @@ and lazily — importing the app must stay cheap for the tests and for `alembic`
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from PIL import Image
@@ -44,7 +44,7 @@ class Pipeline:
         # The ROI is optional: a camera without a drawn zone still works, it
         # just keeps the predictions the zone would have filtered out.
         if self._roi is not None and camera_key is not None and self._roi.has(camera_key):
-            when = taken_at or datetime.now(timezone.utc)
+            when = taken_at or datetime.now(UTC)
             rects = self._roi.rects_at(camera_key, when)
             if rects:
                 kept = [

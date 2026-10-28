@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import BboxOverlay from './BboxOverlay';
 import { useEscape } from '../lib/useEscape';
@@ -58,9 +58,11 @@ export default function SnapshotLightbox({ imageUrl, detections, caption, onClos
   // Актуальные scale и onClose для нативного wheel-слушателя (он вешается
   // один раз и не должен пересоздаваться на каждый рендер).
   const viewRef = useRef(view);
-  viewRef.current = view;
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  useLayoutEffect(() => {
+    viewRef.current = view;
+    onCloseRef.current = onClose;
+  });
   // Колесо/дабл-клик анимируем коротким переходом (плавный зум); во время
   // перетаскивания и пинча переход выключен, иначе картинка «резинит».
   const [animated, setAnimated] = useState(true);
