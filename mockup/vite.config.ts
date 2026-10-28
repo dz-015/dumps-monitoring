@@ -1,0 +1,9 @@
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+
+// Макет живёт отдельно от настоящего фронтенда: свой порт, свои данные.
+export default defineConfig({
+  plugins: [react()],
+  server: { host: '127.0.0.1', port: 5190, strictPort: true },
+  preview: { host: '127.0.0.1', port: 5190, strictPort: true },
+});
