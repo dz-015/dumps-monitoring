@@ -37,6 +37,10 @@ services:
       TELEGRAM_PROXY: ${TELEGRAM_PROXY:-}
       MAX_BOT_TOKEN: ${MAX_BOT_TOKEN:-}
       MAX_BOT_USERNAME: ${MAX_BOT_USERNAME:-}
+      # Нужны бэкенду для разовой операции заведения камер (app/watcher_import).
+      WATCHER_URL: ${WATCHER_URL:-}
+      WATCHER_LOGIN: ${WATCHER_LOGIN:-}
+      WATCHER_PASSWORD: ${WATCHER_PASSWORD:-}
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/health"]
       interval: 30s
@@ -75,6 +79,9 @@ services:
       TELEGRAM_PROXY: ${TELEGRAM_PROXY:-}
       MAX_BOT_TOKEN: ${MAX_BOT_TOKEN:-}
       MAX_BOT_USERNAME: ${MAX_BOT_USERNAME:-}
+      WATCHER_URL: ${WATCHER_URL:-}
+      WATCHER_LOGIN: ${WATCHER_LOGIN:-}
+      WATCHER_PASSWORD: ${WATCHER_PASSWORD:-}
     depends_on:
       backend:
         condition: service_healthy
@@ -102,6 +109,32 @@ services:
       S3_SECRET_KEY: ${S3_SECRET_KEY:-}
       S3_SNAPSHOTS_BUCKET: ${S3_SNAPSHOTS_BUCKET:-}
       S3_REGION: ${S3_REGION:-ru-central1}
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  # Съём кадров с платформы Flussonic Watcher → backend_ingest
+  # (app/watcher_sync.py). Пришёл на смену цепочке «сборщик → S3 → синк»:
+  # камеры переехали на платформу. Без её настроек мирно спит.
+  watcher-sync:
+    image: nekobak-backend
+    container_name: nekobak-watcher-sync
+    restart: unless-stopped
+    entrypoint: ["python"]
+    command: ["-m", "app.watcher_sync"]
+    healthcheck:
+      disable: true
+    volumes:
+      - backend_db:/app/data
+      - backend_ingest:/app/ingest
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-sqlite:////app/data/nekobak.db}
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
+      INGEST_DIR: /app/ingest
+      WATCHER_URL: ${WATCHER_URL:-}
+      WATCHER_LOGIN: ${WATCHER_LOGIN:-}
+      WATCHER_PASSWORD: ${WATCHER_PASSWORD:-}
+      WATCHER_INTERVAL_SECONDS: ${WATCHER_INTERVAL_SECONDS:-3600}
     depends_on:
       backend:
         condition: service_healthy

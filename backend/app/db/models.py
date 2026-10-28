@@ -80,6 +80,10 @@ class Camera(Base):
     # Ключ камеры у сборщика: "2" для кадров cam2_*.jpg. По нему планировщик
     # находит камеру для кадра, а пайплайн — её ROI в cameras_roi_v2.json.
     external_key: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
+    # Имя потока на платформе Flussonic Watcher (источник кадров вместо RTSP).
+    # В имени потока есть точки и дефисы, поэтому в именах файлов кадров
+    # используется короткий external_key, а не оно.
+    watcher_stream: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     last_checked: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, server_default=func.now())

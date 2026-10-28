@@ -100,6 +100,14 @@ class Settings(BaseSettings):
     # после миграции июля 2026.
     MAX_API_BASE: str = "https://platform-api2.max.ru"
 
+    # Платформа видеонаблюдения Flussonic Watcher — источник кадров вместо
+    # прямого RTSP (камеры переехали на неё, см. app/watcher.py).
+    WATCHER_URL: str = ""
+    WATCHER_LOGIN: str = ""
+    WATCHER_PASSWORD: str = ""
+    # Раз в сколько секунд снимать кадры со всех активных камер.
+    WATCHER_INTERVAL_SECONDS: int = 3600
+
     class Config:
         env_file = ".env"
 
