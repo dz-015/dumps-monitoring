@@ -1,0 +1,12 @@
+{
+  "name": "cvat-razmetka-tools",
+  "private": true,
+  "description": "Русский интерфейс и горячие клавиши для разметки №2 в CVAT 2.77, их проверка в браузере",
+  "scripts": {
+    "bundle": "mkdir -p dist && cat ru.js tools.js > dist/razmetka-tools.js",
+    "test": "LD_LIBRARY_PATH=$PWD/.syslibs/root/usr/lib/x86_64-linux-gnu PLAYWRIGHT_BROWSERS_PATH=0 node --test --test-concurrency=1 test/*.test.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}
