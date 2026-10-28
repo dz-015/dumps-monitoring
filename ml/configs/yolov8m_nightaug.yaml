@@ -1,0 +1,64 @@
+# Level-2 ablation: YOLOv8m + NightAug-CCTV Albumentations pipeline.
+# Hyperparameters tuned per cowork research 2026-05-13:
+# - hsv_v: 0.4 → 0.55 (broader brightness sampling)
+# - close_mosaic: 10 → 15 (mosaic closes earlier in training)
+# - warmup_epochs: 3 → 5 (cam_7 collapse mitigation)
+# - patience: 20 → 30 (allow longer optimisation)
+
+experiment:
+  name: yolov8m_nightaug
+  description: >
+    YOLOv8m 3-class with NightAug-CCTV Albumentations pipeline injected
+    via Ultralytics augmentations= hook. Targets cam_2 multi-bin night
+    failure mode (RT-DETR baseline 0.277 mAP@50). Decision benchmark:
+    cam_2 mAP@50 > 0.34 to keep all augmentations.
+
+data: data.yaml
+
+model:
+  arch: yolov8m.pt
+  class_weights: null
+
+train:
+  epochs: 80
+  patience: 30
+  batch: 16
+  imgsz: 640
+  lr0: 0.001          # lower than baseline 0.003 (per Level-1.5 sweet spot)
+  lrf: 0.01
+  cos_lr: true
+  warmup_epochs: 5    # bumped from 3 to mitigate cam_7-style collapse
+  close_mosaic: 15    # mosaic off earlier for stability on small data
+
+  seed: 0
+  deterministic: true
+  cache: false
+  workers: 0          # avoid DataLoader deadlock observed in Level-1.5 fold_1
+
+augmentation:
+  hsv_h: 0.015
+  hsv_s: 0.7
+  hsv_v: 0.55         # bumped from 0.4 for broader brightness sampling
+  translate: 0.05     # reduced — fixed cameras don't need much
+  scale: 0.3          # reduced — fixed cameras don't need much
+  mosaic: 1.0
+  fliplr: 0.0
+  flipud: 0.0
+  mixup: 0.0
+  copy_paste: 0.0
+
+evaluation:
+  protocol: LOSO
+  num_folds: 5
+  working_cameras: [1, 2, 3, 5, 7]
+  seeds: [0, 1, 2]
+  metrics:
+    - mAP_50
+    - mAP_50_95
+    - per_class_precision
+    - per_class_recall
+    - per_class_f1
+    - confusion_matrix
+  scene_aggregation:
+    overflow_threshold: 0.5
+    contamination_threshold: 0.5

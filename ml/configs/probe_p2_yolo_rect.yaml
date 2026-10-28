@@ -1,0 +1,22 @@
+experiment:
+  name: probe_p2_yolo_rect
+  description: "PROBE P2: YOLOv8m 640, rect=True (vs square letterbox). Isolates rectangular training (YOLO-only; RT-DETR hardcodes rect=False)."
+data: data.yaml
+model: {arch: yolov8m.pt, class_weights: null}
+train:
+  epochs: 80
+  patience: 50
+  batch: 16
+  imgsz: 640
+  lr0: 0.001
+  lrf: 0.01
+  cos_lr: true
+  warmup_epochs: 5
+  close_mosaic: 10
+  seed: 1
+  deterministic: true
+  cache: false
+  workers: 4
+  rect: true
+augmentation: {hsv_h: 0.015, hsv_s: 0.7, hsv_v: 0.4, translate: 0.1, scale: 0.5, mosaic: 1.0, fliplr: 0.0, flipud: 0.0, degrees: 0.0, shear: 0.0, perspective: 0.0, mixup: 0.0, copy_paste: 0.0}
+evaluation: {protocol: LOSO, num_folds: 5, working_cameras: [1,2,3,5,7], seeds: [1], metrics: [mAP_50, per_class_f1]}

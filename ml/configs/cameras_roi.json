@@ -1,0 +1,9 @@
+{
+  "_README": "Final ROIs verified by Arseniy 2026-05-08. K=5 working cameras (1, 2, 3, 5, 7). cam_4 and cam_6 dropped as unfit.",
+  "_FORMAT": "[x1, y1, x2, y2] in original-frame pixel coordinates.",
+  "1": [63, 484, 949, 838],
+  "2": [546, 56, 1658, 593],
+  "3": [446, 329, 1865, 675],
+  "5": [473, 443, 957, 756],
+  "7": [185, 195, 839, 561]
+}

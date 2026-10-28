@@ -1,0 +1,23 @@
+# Data — managed by DVC, not git
+data/raw/
+data/processed/
+data/public/
+data/splits/
+*.pt
+*.onnx
+*.pth
+
+# Experiment outputs
+runs/
+wandb/
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# DVC cache
+.dvc/cache/
+.dvc/tmp/

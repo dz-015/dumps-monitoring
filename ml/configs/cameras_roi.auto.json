@@ -1,0 +1,56 @@
+{
+  "_README": "AUTO-SUGGESTED ROI from COCO YOLOv8m detections. Verify visually before using in sample_dataset.py.",
+  "_HOW_TO_VERIFY": "Open one audit frame per camera in image viewer. Check ROI [x1,y1,x2,y2] visually contains all bins + ~30% margin. Edit if needed.",
+  "_BIN_PROXY_CLASSES": [
+    "vase",
+    "bottle",
+    "bench",
+    "chair",
+    "suitcase",
+    "refrigerator",
+    "cup",
+    "bowl"
+  ],
+  "1": [
+    1551,
+    1170,
+    1769,
+    1241
+  ],
+  "2": [
+    153,
+    0,
+    1868,
+    939
+  ],
+  "3": [
+    0,
+    243,
+    1920,
+    637
+  ],
+  "4": [
+    192,
+    108,
+    1728,
+    972
+  ],
+  "5": [
+    417,
+    628,
+    456,
+    686
+  ],
+  "6": [
+    128,
+    72,
+    1152,
+    648
+  ],
+  "7": [
+    0,
+    146,
+    1023,
+    652
+  ]
+}

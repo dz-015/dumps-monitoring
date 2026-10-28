@@ -1,0 +1,22 @@
+# Level-0 sanity baseline: YOLOv8m, 3 classes (bin types only — no ok/overflow state).
+# Purpose: establishes the upper bound we'd hit if we ignored overflow entirely.
+# If Level-1 beats Level-0 by < 5 mAP we have evidence the overflow signal is weak.
+# This comparison is one of the thesis ablations.
+#
+# Only fields that differ from level1.yaml are shown. Copy-paste the rest.
+
+experiment:
+  name: level0_binonly
+  description: >
+    YOLOv8m 3-class baseline. Classes: metal, plastic, euro.
+    No ok/overflow distinction, no ground_trash.
+
+data: data_3class.yaml
+
+model:
+  arch: yolov8m.pt
+  class_weights: null
+
+# Everything else identical to level1.yaml
+# (Epochs, LR, augmentation, evaluation protocol.)
+# In code: merge level1.yaml base with this overlay.

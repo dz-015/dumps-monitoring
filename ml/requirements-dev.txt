@@ -1,0 +1,5 @@
+# Dev-only dependencies. Kept separate from requirements-ml.txt so test runs
+# don't pull torch/ultralytics. Install into ml/venv on top of (or instead of)
+# requirements-ml.txt depending on what you're doing:
+#   ml/venv/bin/pip install -r requirements-dev.txt
+pytest>=8.0,<9.0

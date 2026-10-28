@@ -1,0 +1,25 @@
+experiment:
+  name: probe_p1a_rtdetr_optlr
+  description: "PROBE P1a: RT-DETR 640, explicit AdamW lr0=2e-4 wd=5e-4 (vs baseline auto-optimizer ~0.00143). Isolates optimizer/lr."
+data: data.yaml
+model: {arch: rtdetr-l.pt, class_weights: null}
+train:
+  epochs: 80
+  patience: 20
+  batch: 16
+  imgsz: 640
+  lr0: 0.0002
+  lrf: 0.01
+  cos_lr: true
+  warmup_epochs: 3
+  close_mosaic: 10
+  seed: 1
+  deterministic: true
+  cache: false
+  workers: 4
+  optimizer: AdamW
+  weight_decay: 0.0005
+  momentum: 0.9
+  amp: true
+augmentation: {hsv_h: 0.015, hsv_s: 0.7, hsv_v: 0.4, translate: 0.1, scale: 0.5, mosaic: 1.0, fliplr: 0.0, flipud: 0.0, degrees: 0.0, shear: 0.0, perspective: 0.0, mixup: 0.0, copy_paste: 0.0}
+evaluation: {protocol: LOSO, num_folds: 5, working_cameras: [1,2,3,5,7], seeds: [1], metrics: [mAP_50, per_class_f1]}

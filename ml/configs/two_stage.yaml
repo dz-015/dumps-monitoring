@@ -1,0 +1,39 @@
+# Two-stage pipeline: YOLOv8m 4-class detector + EfficientNet-B3 binary crop classifier.
+# Stage 1 detects {metal, plastic, euro, ground_trash}. Stage 2 takes bbox crops of the 3
+# bin classes and predicts {ok, overflow}. ground_trash has no stage-2 (already terminal).
+
+stage1:
+  name: detector_4class
+  arch: yolov8m.pt
+  # reuse level1.yaml train config; only difference is nc=4 and class list
+  classes: [metal, plastic, euro, ground_trash]
+
+stage2:
+  name: crop_classifier_overflow
+  arch: efficientnet_b3            # timm
+  pretrained: imagenet
+  input_size: 224                  # square crop
+  classes: [ok, overflow]
+  train:
+    epochs: 30
+    batch: 64
+    lr0: 1.0e-4
+    weight_decay: 1.0e-4
+    mixup: 0.1                     # OK for classification crops, not for detection
+    label_smoothing: 0.05
+    augmentation:
+      hflip: 0.5                   # bin crop is roughly symmetric — flip is OK here
+      rotate_deg: 5
+      hsv_h: 0.015
+      hsv_s: 0.5
+      hsv_v: 0.3
+    seed: 0
+
+evaluation:
+  # Scene-level overflow alert: any bin crop classified as overflow with p > threshold.
+  protocol: LOSO
+  num_folds: 3
+  seeds: [0]
+  overflow_threshold: 0.5
+  contamination_threshold: 0.5      # stage-1 only; ground_trash confidence
+  compare_to: level1_baseline

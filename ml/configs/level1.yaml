@@ -1,0 +1,71 @@
+# Level-1 baseline: YOLOv8m, 3 classes, single-head.
+# Pivot 7→3 утверждён 2026-05-04 после per-camera coverage analysis:
+# bin type оказался свойством камеры (фона), не объекта. Подробности в plan_v1.4_DRAFT.md.
+
+experiment:
+  name: level1_baseline
+  description: >
+    YOLOv8m 3-class single-head baseline.
+    3 classes: bin_ok, bin_overflow, ground_trash.
+    Bin type (metal/plastic/euro) хранится статически в Camera.bin_type, не предсказывается моделью.
+
+# Path to Ultralytics dataset YAML (written by scripts/prepare_loso_fold.py).
+# Each LOSO fold produces its own data.yaml pointing at a different test camera.
+data: data.yaml
+
+model:
+  arch: yolov8m.pt          # COCO-pretrained; fine-tuned on our data
+  # Ultralytics handles class_weights via a model attribute patched before .train().
+  # See src/training/balance.py when we add that.
+  class_weights: null       # TODO(week3): fill from real class-frequency count
+
+train:
+  epochs: 80                # lower than Ultralytics default 100 — we plateau earlier on 1500 imgs
+  patience: 20              # earlier early-stop on small data (default 100 ≈ disabled)
+  batch: 16                 # safe on 4090 at imgsz 640; bump to 32 if VRAM allows
+  imgsz: 640                # ablate 1280 separately in week 4
+  lr0: 0.003                # lower than default 0.01 — we fine-tune from COCO
+  lrf: 0.01                 # final LR = lr0 * lrf
+  cos_lr: true              # cosine decay
+  warmup_epochs: 3
+  close_mosaic: 10          # disable mosaic last 10 epochs
+
+  # Reproducibility knobs — do not change without logging rationale
+  seed: 0
+  deterministic: true
+  cache: false              # NOT "ram" — ram-cache has a known non-determinism bug (Ultralytics #21783)
+  workers: 4
+
+augmentation:
+  # Defaults we KEEP (Ultralytics ships sensible values for these)
+  hsv_h: 0.015
+  hsv_s: 0.7
+  hsv_v: 0.4
+  translate: 0.1
+  scale: 0.5
+  mosaic: 1.0                # kept, but see close_mosaic above
+
+  # Explicit OFF — our camera geometry does not justify these
+  fliplr: 0.0                # asymmetric camera angles
+  flipud: 0.0
+  degrees: 0.0
+  shear: 0.0
+  perspective: 0.0
+  mixup: 0.0                 # destroys bbox class semantics
+  copy_paste: 0.0            # Ultralytics copy_paste is segmentation-only anyway
+
+evaluation:
+  protocol: LOSO             # leave-one-site-out K-fold
+  num_folds: 5               # K=5 working cameras: 1, 2, 3, 5, 7 (verified Arseniy 2026-05-08); cam_4 and cam_6 dropped as unfit
+  working_cameras: [1, 2, 3, 5, 7]
+  seeds: [0, 1, 2]           # 3 seeds per fold per Bouthillier 2021 (data-split variance dominates seed variance)
+  metrics:
+    - mAP_50
+    - mAP_50_95
+    - per_class_precision
+    - per_class_recall
+    - per_class_f1
+    - confusion_matrix
+  scene_aggregation:
+    overflow_threshold: 0.5  # TODO(week3): calibrate on val F1-max
+    contamination_threshold: 0.5

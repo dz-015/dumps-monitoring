@@ -1,0 +1,19 @@
+{
+  "_README": "Pixel ROI per camera. Format: [x1, y1, x2, y2] in original-frame coordinates.",
+  "_HOW_TO_FILL": [
+    "1. Open one of the audit frames (ml/data/raw/audit_2026-05-04/cam_X/) in any image viewer that shows pixel coords.",
+    "2. Find the smallest rectangle containing all bins + 30% margin (catch overflow falling out + bin shifts).",
+    "3. Note (x1,y1) = top-left corner, (x2,y2) = bottom-right corner.",
+    "4. Repeat per working camera. Skip cameras classified as unusable in audit.",
+    "5. Rename this file to cameras_roi.json (drop .example) and use it in sample_dataset.py."
+  ],
+  "_NOTE_ON_MOVING_BINS": "If audit frames show a bin moving between positions (skip containers, eurobins on wheels), the ROI must be the UNION of positions across audit frames, not a tight crop of any single frame.",
+  "_EXAMPLE_VALUES_BELOW_ARE_PLACEHOLDERS": "Replace with real values per visual inspection.",
+  "1": [350, 200, 1050, 720],
+  "2": [400, 250, 1200, 800],
+  "3": [200, 150, 1100, 750],
+  "4": [300, 180, 1100, 720],
+  "5": [350, 200, 1150, 760],
+  "6": [400, 250, 1200, 800],
+  "7": [350, 220, 1100, 740]
+}

@@ -1,0 +1,53 @@
+experiment:
+  name: rtdetr_loso_1280
+  description: >
+    RT-DETR-L 3-class single-head, LOSO 5-fold, imgsz=1280 (vs baseline 640).
+    Tests if higher input resolution improves bin detection on FullHD source frames.
+
+data: data.yaml
+
+model:
+  arch: rtdetr-l.pt
+  class_weights: null
+
+train:
+  epochs: 80
+  patience: 50
+  batch: 2                  # 1280 needs less batch (memory)
+  imgsz: 1280
+  lr0: 0.0001
+  lrf: 0.01
+  cos_lr: true
+  warmup_epochs: 5
+  close_mosaic: 10
+  seed: 0
+  deterministic: true
+  cache: false
+  workers: 0
+
+augmentation:
+  hsv_h: 0.015
+  hsv_s: 0.7
+  hsv_v: 0.4
+  translate: 0.1
+  scale: 0.5
+  mosaic: 1.0
+  fliplr: 0.0
+  flipud: 0.0
+  degrees: 0.0
+  shear: 0.0
+  perspective: 0.0
+  mixup: 0.0
+  copy_paste: 0.0
+
+evaluation:
+  protocol: LOSO
+  num_folds: 5
+  working_cameras: [1, 2, 3, 5, 7]
+  seeds: [1]                # single seed для economy of GPU time
+  metrics:
+    - mAP_50
+    - mAP_50_95
+    - per_class_precision
+    - per_class_recall
+    - per_class_f1
